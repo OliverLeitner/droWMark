@@ -1,6 +1,7 @@
 import sys
-from wordpress_xmlrpc import Client, WordPressPost
-from wordpress_xmlrpc.methods.posts import NewPost
+import os
+from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
+from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
 from wordpress_xmlrpc.compat import xmlrpc_client
 from wordpress_xmlrpc.methods import media, posts
 
@@ -16,6 +17,7 @@ import mimetypes
 
 WP = None
 postfile = ''
+script_dir = os.path.dirname(os.path.realpath(__file__))
 
 def imageURLs(elem, doc):
     """
@@ -84,7 +86,123 @@ def uploadFile( url, mime ):
     response = WP.call(media.UploadFile(data))
     return response
 
+def getAllPosts( offset, increment ):
+    """
+    lets do the wordpress post listing thing
+    """
+    config = ConfigParser()
+    home = os.path.expanduser('~')
+    config.read(home + '/.vimblogrc')
 
+    url = config.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config.get('blog0','username')
+    password = config.get('blog0','password')
+
+    WP = Client( url, username, password )
+
+    print '============== blog entries ================='
+    while True:
+        posts = WP.call(GetPosts({'number': increment, 'offset': offset}))
+        if len(posts) == 0:
+            break  # no more posts returned
+        for post in posts:
+            #post_str = str(post)
+            #tags = ','.join(map(str,post.terms))
+            categories = ','.join(map(str,post.terms))
+            print post.id + ' - ' + post.title + ' - ' + categories
+        offset = offset + increment
+
+def deletePost ( postid ):
+    """
+    delete a blogpost
+    """
+    config = ConfigParser()
+    home = os.path.expanduser('~')
+    config.read(home + '/.vimblogrc')
+
+    url = config.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config.get('blog0','username')
+    password = config.get('blog0','password')
+
+    WP = Client( url, username, password )
+    post = WP.call(DeletePost(postid))
+    print post
+
+def publishPost ( postid ):
+    """
+    publish an existing post
+    """
+    config = ConfigParser()
+    home = os.path.expanduser('~')
+    config.read(home + '/.vimblogrc')
+
+    url = config.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config.get('blog0','username')
+    password = config.get('blog0','password')
+
+    content.post_status = 'publish'
+
+    WP = Client( url, username, password )
+    post = WP.call(EditPost(postid, content))
+    print post
+
+def editPost ( postid ):
+    """
+    edit an existing post
+    """
+    config = ConfigParser()
+    home = os.path.expanduser('~')
+    config.read(home + '/.vimblogrc')
+
+    url = config.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config.get('blog0','username')
+    password = config.get('blog0','password')
+
+    # loading the template file for putting
+    # returned markdown into
+    postfile = script_dir + '/../templates/drowmark.template'
+    file = open(postfile,'rU')
+    buf = file.read()
+
+    # getting the data of the post
+    WP = Client( url, username, password )
+    post = WP.call(GetPost(postid))
+
+    #list of categories
+    categories = config.get('blog0','categories')
+    active_categories = '';
+    for term in post.terms:
+        if term.name in categories:
+            active_categories += term.name + ','
+
+    active_categories = active_categories[:-1]
+
+    #active tags
+    tags = ','.join(map(str,post.terms))
+
+    # Take HTML, convert to markdown and put it as post content
+    # Makes intermediate convertion to Panflute AST to apply the filters.
+    postdocument = pf.convert_text(post.content, input_format='html',
+                                                output_format='panflute',
+                                                standalone=True)
+
+    pf.run_filters( [ imageURLs, codeBlocks ], doc = postdocument )
+    content = pf.convert_text(postdocument, input_format='panflute',
+                                            output_format='markdown')
+
+    #fill the template
+    buf = buf.replace('{TITLE}',post.title)
+    buf = buf.replace('{STATUS}',post.post_status)
+    buf = buf.replace('{CATEGORIES}',active_categories)
+    buf = buf.replace('{TAGS}',tags)
+    buf = buf.replace('{CONTENT}',content)
+
+    print buf
+    sys.exit()
 
 if __name__ == '__main__':
 
@@ -92,13 +210,11 @@ if __name__ == '__main__':
     # maintain it simple, making the python file
     # callable from outside VIM also.
 
-    if not len(sys.argv) == 4:
-        print('3 parameters needed:\n\t username password file')
-        raise BaseException
+    if not len(sys.argv) == 2:
+         print('1 parameter needed:\n\t file')
+         raise BaseException
 
-    username = sys.argv[1]
-    password = sys.argv[2]
-    postfile = sys.argv[3]
+    postfile = sys.argv[1]
 
 
     # Files are Markdown + INI mixed, INI is put
@@ -126,7 +242,15 @@ if __name__ == '__main__':
     # Parse the INI part
     buf = StringIO(postconfig)
     config = ConfigParser()
+    config_global = ConfigParser()
     config.readfp(buf)
+    home = os.path.expanduser('~')
+    config_global.read(home + '/.vimblogrc')
+
+    url = config_global.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config_global.get('blog0','username')
+    password = config_global.get('blog0','password')
 
     terms_names = {}
     tags = config.get('wordpress', 'tags')
@@ -137,10 +261,9 @@ if __name__ == '__main__':
 
     post_status = config.get('wordpress','status')
 
-    url = config.get('wordpress','url')
-    url = 'https://' + url + '/xmlrpc.php'
-
     title = config.get('wordpress','title')
+
+    entrytype = config.get('wordpress','type')
 
     thumb_url = None
     if config.has_option('wordpress','thumbnail'):
@@ -150,7 +273,11 @@ if __name__ == '__main__':
 
     # Wordpress related, create the post
     WP = Client( url, username, password )
-    post = WordPressPost()
+
+    if entrytype != 'page':
+        post = WordPressPost()
+    else:
+        page = WordPressPage()
 
 
     # Take markdown, convert to HTML and put it as post content
@@ -163,20 +290,33 @@ if __name__ == '__main__':
     content = pf.convert_text(postdocument, input_format='panflute',
                                             output_format='html')
 
-
-    # Set post metadata
-    post.title = title
-    post.content = content
-    post.post_status = post_status
-    post.terms_names = terms_names
+    if entrytype != 'page':
+        # Set post metadata
+        post.title = title
+        post.content = content
+        post.post_status = post_status
+        post.terms_names = terms_names
+    else:
+        # i just do the same for pages
+        # except we dont need the tags
+        page.title = title
+        page.content = content
+        page.post_status = post_status
 
     if not thumb_url == None:
         thumb_mime = checkImage(thumb_url)
         if not thumb_mime == None:
             response = uploadFile(thumb_url, thumb_mime)
-            post.thumbnail = response['id']
+            if entrytype != 'page':
+                post.thumbnail = response['id']
+            else:
+                page.thumbnail = response['id']
 
-    post.id = WP.call(NewPost(post)) # Post it!
+    if entrytype != 'page':
+        post.id = WP.call(NewPost(post)) # Post it!
+    else:
+        page.id = WP.call(NewPost(page)) # or maybe post a page!
+        post = page
 
     print( "Posted: " + post.title )
     print( "\nWith Status: " + post.post_status )

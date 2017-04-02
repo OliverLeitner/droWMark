@@ -1,26 +1,28 @@
 [wordpress]
 
+# if we are editing, we want to give an id
+#id = {ID}
+
 # Title of your blog post here
 # Example: title = My cool blog post in here
-title =
+title = {TITLE}
 
 # The status you want for your blog post here. Options are:
 # draft, published, pending, private
 # Example: status = published
-status =
+status = {STATUS}
 
 # The categories of your blog post. Comma separated.
 # Example: categories = Category One, Cat Two
-categories =
+categories = {CATEGORIES}
 
 # The tags of your blog post. Comma separated.
 # Example: tags = tag one, tag two
-tags =
+tags = {TAGS}
 
-# The URL of your blog.
-# ('https://'  and 'xmlrpc.php' will be added automatically)
-# Example: url = mycoolblog.wordpress.com
-url =
+# the type we want to post as
+# can be post or page, depending...
+type = post
 
 # [OPTIONAL] Thumbnail image.
 # URL or Relative Path to the post file. If path, it will be automatically
@@ -28,6 +30,4 @@ url =
 # Example: thumbnail = images/thumb.jpg
 # thumbnail =
 ---
-
-
-# Content of your blogpost.
+{CONTENT}

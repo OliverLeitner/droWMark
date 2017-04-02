@@ -1,14 +1,4 @@
 function! PostWordPress()
-    call inputsave()
-    let l:user = input('Enter username: ')
-    call inputrestore()
-    echo "\n"
-
-    " Get the blog password by user input
-    echo 'Enter password: '
-    let l:password = s:getPass()
-
-
     " Prepare arguments for python script.
     if( has('python') )
         let inter='python'
@@ -19,10 +9,9 @@ function! PostWordPress()
     exe inter . ' ' .'import vim'
     exe inter . ' ' .'import sys'
     let l:script = escape(s:path, ' ') . '/drowmark.py'
-    exe inter.' ' . 'sys.argv = [ vim.eval("l:script"), vim.eval("l:user"), vim.eval("l:password"), vim.eval("@%") ]'
+    exe inter.' ' . 'sys.argv = [ vim.eval("l:script"), vim.eval("@%") ]'
     " Call script
     exe interfile .' ' . l:script
-
 endfunction
 
 function! NewWordPress()
@@ -31,20 +20,39 @@ function! NewWordPress()
     setlocal ft=drowmark
 endfunction
 
-" Get password without showing the echo in the screen
-function! s:getPass()
-    let password = ""
-    let char = nr2char(getchar())
+" Get a list of blog entries from our blog
+function! ListWordPress()
+    silent execute '!clear'
+    let l:bloglist = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.getAllPosts(0,20)"'
+    execute l:bloglist
+    "exec 'read '. l:bloglist
+    "setlocal buftype=nofile
+endfunction
 
-    while char !=  "\<CR>"
-        let password = password . char
-        let char = nr2char(getchar())
-    endwhile
-    return password
+"publish an existing post
+function! PublishWordPress()
+    call inputsave()
+    let l:postid = input('Enter a post ID to publish: ')
+    call inputrestore()
 
+    let l:publish = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.publishPost('.l:postid.')"'
+    execute l:publish
+endfunction
+
+"delete an existing post
+function! DeleteWordPress()
+    call inputsave()
+    let l:postid = input('Enter a post ID to delete: ')
+    call inputrestore()
+
+    let l:delete = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.deletePost('.l:postid.')"'
+    execute l:delete
 endfunction
 
 let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
+command! ListWordPress call ListWordPress()
+command! PublishWordPress call PublishWordPress()
+command! DeleteWordPress call DeleteWordPress()
 command! NewWordPress call NewWordPress()
 command! PostWordPress call PostWordPress()
