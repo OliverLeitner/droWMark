@@ -1,5 +1,9 @@
 # droWMark
 
+#initial changes commit by me!!!
+#do not use yet
+#give me a few days
+
 Vim plugin to post from VIM to WordPress using
 [Pandoc-Markdown](http://pandoc.org/README.html#pandocs-markdown).
 
