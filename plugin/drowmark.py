@@ -18,6 +18,23 @@ import mimetypes
 WP = None
 postfile = ''
 script_dir = os.path.dirname(os.path.realpath(__file__))
+home = os.path.expanduser('~')
+
+def getConfig():
+    """
+    read configuration and return a set wordpress link
+    """
+    config = ConfigParser()
+    config.read(home + '/.vimblogrc')
+
+    url = config.get('blog0','url')
+    url = 'https://' + url + '/xmlrpc.php'
+    username = config.get('blog0','username')
+    password = config.get('blog0','password')
+
+    WP = Client( url, username, password )
+    return WP
+
 
 def imageURLs(elem, doc):
     """
@@ -76,7 +93,6 @@ def uploadFile( url, mime ):
       'type': 'image/jpeg',
     }
     """
-
     data = {}
     data['name'] = path.basename(url)
     data['type'] = mime
@@ -90,16 +106,8 @@ def getAllPosts( offset, increment ):
     """
     lets do the wordpress post listing thing
     """
-    config = ConfigParser()
-    home = os.path.expanduser('~')
-    config.read(home + '/.vimblogrc')
 
-    url = config.get('blog0','url')
-    url = 'https://' + url + '/xmlrpc.php'
-    username = config.get('blog0','username')
-    password = config.get('blog0','password')
-
-    WP = Client( url, username, password )
+    WP = getConfig()
 
     print '============== blog entries ================='
     while True:
@@ -117,16 +125,7 @@ def deletePost ( postid ):
     """
     delete a blogpost
     """
-    config = ConfigParser()
-    home = os.path.expanduser('~')
-    config.read(home + '/.vimblogrc')
-
-    url = config.get('blog0','url')
-    url = 'https://' + url + '/xmlrpc.php'
-    username = config.get('blog0','username')
-    password = config.get('blog0','password')
-
-    WP = Client( url, username, password )
+    WP = getConfig()
     post = WP.call(DeletePost(postid))
     print post
 
@@ -134,18 +133,7 @@ def publishPost ( postid ):
     """
     publish an existing post
     """
-    config = ConfigParser()
-    home = os.path.expanduser('~')
-    config.read(home + '/.vimblogrc')
-
-    url = config.get('blog0','url')
-    url = 'https://' + url + '/xmlrpc.php'
-    username = config.get('blog0','username')
-    password = config.get('blog0','password')
-
-    content.post_status = 'publish'
-
-    WP = Client( url, username, password )
+    WP = getConfig()
     post = WP.call(EditPost(postid, content))
     print post
 
@@ -153,15 +141,6 @@ def editPost ( postid ):
     """
     edit an existing post
     """
-    config = ConfigParser()
-    home = os.path.expanduser('~')
-    config.read(home + '/.vimblogrc')
-
-    url = config.get('blog0','url')
-    url = 'https://' + url + '/xmlrpc.php'
-    username = config.get('blog0','username')
-    password = config.get('blog0','password')
-
     # loading the template file for putting
     # returned markdown into
     postfile = script_dir + '/../templates/drowmark.template'
@@ -169,7 +148,7 @@ def editPost ( postid ):
     buf = file.read()
 
     # getting the data of the post
-    WP = Client( url, username, password )
+    WP = getConfig()
     post = WP.call(GetPost(postid))
 
     #list of categories
@@ -241,16 +220,8 @@ if __name__ == '__main__':
 
     # Parse the INI part
     buf = StringIO(postconfig)
-    config = ConfigParser()
     config_global = ConfigParser()
     config.readfp(buf)
-    home = os.path.expanduser('~')
-    config_global.read(home + '/.vimblogrc')
-
-    url = config_global.get('blog0','url')
-    url = 'https://' + url + '/xmlrpc.php'
-    username = config_global.get('blog0','username')
-    password = config_global.get('blog0','password')
 
     terms_names = {}
     tags = config.get('wordpress', 'tags')
@@ -272,7 +243,7 @@ if __name__ == '__main__':
         thumb_url = path.join( here, thumbnail ) # Make path absolute
 
     # Wordpress related, create the post
-    WP = Client( url, username, password )
+    WP = getConfig()
 
     if entrytype != 'page':
         post = WordPressPost()
