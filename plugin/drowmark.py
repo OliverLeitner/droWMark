@@ -43,6 +43,54 @@ def getConfig():
     WP = Client( url, username, password )
     return WP
 
+def getPostConfig( postfile ):
+    """
+    putting this into a separate function might help later on
+    with cleanup.
+    """
+    post = {}
+    post['postconfig'] = ''
+    post['postcontent'] = ''
+
+    inheader = True
+    f = codecs.open(postfile, 'r', 'utf-8')
+    for line in f:
+        if inheader:
+            # FIXME Improve this check
+            if line.strip() == '---':
+                inheader = False
+                continue
+            post['postconfig'] += line
+            continue
+        if not inheader:
+            post['postcontent'] += line
+            continue
+    f.close()
+
+    # Parse the INI part
+    buf = StringIO(post['postconfig'])
+    config = ConfigParser()
+    config.readfp(buf)
+
+    post['terms_names'] = {}
+    post['tags'] = config.get('wordpress', 'tags')
+    post['terms_names']['post_tag'] = map(lambda x: x.strip(),post['tags'].split(','))
+
+    post['categories'] = config.get('wordpress', 'categories')
+    post['terms_names']['category'] = map(lambda x: x.strip(),post['categories'].split(','))
+
+    post['post_status'] = config.get('wordpress','status')
+
+    post['title'] = config.get('wordpress','title')
+
+    post['entrytype'] = config.get('wordpress','type')
+
+    post['thumb_url'] = None
+    if config.has_option('wordpress','thumbnail'):
+        post['thumbnail'] = config.get('wordpress', 'thumbnail')
+        here = path.dirname( postfile )
+        post['thumb_url'] = path.join( here, post['thumbnail'] ) # Make path absolute
+    return post
 
 def imageURLs(elem, doc):
     """
@@ -203,57 +251,13 @@ if __name__ == '__main__':
 
     postfile = sys.argv[1]
 
-
-    # Files are Markdown + INI mixed, INI is put
-    # on the top of the file just for adding some
-    # metadata, the separator is an horizontal ruler
-
-    postconfig = ''
-    postcontent = ''
-
-    inheader = True
-    f = codecs.open(postfile, 'r', 'utf-8')
-    for line in f:
-        if inheader:
-            # FIXME Improve this check
-            if line.strip() == '---':
-                inheader = False
-                continue
-            postconfig += line
-            continue
-        if not inheader:
-            postcontent += line
-            continue
-    f.close()
-
-    # Parse the INI part
-    buf = StringIO(postconfig)
-    config = ConfigParser()
-    config.readfp(buf)
-
-    terms_names = {}
-    tags = config.get('wordpress', 'tags')
-    terms_names['post_tag'] = map(lambda x: x.strip(),tags.split(','))
-
-    categories = config.get('wordpress', 'categories')
-    terms_names['category'] = map(lambda x: x.strip(),categories.split(','))
-
-    post_status = config.get('wordpress','status')
-
-    title = config.get('wordpress','title')
-
-    entrytype = config.get('wordpress','type')
-
-    thumb_url = None
-    if config.has_option('wordpress','thumbnail'):
-        thumbnail = config.get('wordpress', 'thumbnail')
-        here = path.dirname( postfile )
-        thumb_url = path.join( here, thumbnail ) # Make path absolute
+    # grabbing the template and inserting what we already can...
+    newpost = getPostConfig(postfile)
 
     # Wordpress related, create the post
     WP = getConfig()
 
-    if entrytype != 'page':
+    if newpost['entrytype'] != 'page':
         post = WordPressPost()
     else:
         page = WordPressPage()
@@ -261,7 +265,7 @@ if __name__ == '__main__':
 
     # Take markdown, convert to HTML and put it as post content
     # Makes intermediate convertion to Panflute AST to apply the filters.
-    postdocument = pf.convert_text(postcontent, input_format='markdown',
+    postdocument = pf.convert_text(newpost['postcontent'], input_format='markdown',
                                                 output_format='panflute',
                                                 standalone=True)
 
@@ -269,29 +273,29 @@ if __name__ == '__main__':
     content = pf.convert_text(postdocument, input_format='panflute',
                                             output_format='html')
 
-    if entrytype != 'page':
+    if newpost['entrytype'] != 'page':
         # Set post metadata
-        post.title = title
+        post.title = newpost['title']
         post.content = content
-        post.post_status = post_status
-        post.terms_names = terms_names
+        post.post_status = newpost['post_status']
+        post.terms_names = newpost['terms_names']
     else:
         # i just do the same for pages
         # except we dont need the tags
-        page.title = title
+        page.title = newpost['title']
         page.content = content
-        page.post_status = post_status
+        page.post_status = newpost['post_status']
 
-    if not thumb_url == None:
-        thumb_mime = checkImage(thumb_url)
+    if not newpost['thumb_url'] == None:
+        thumb_mime = checkImage(newpost['thumb_url'])
         if not thumb_mime == None:
-            response = uploadFile(thumb_url, thumb_mime)
-            if entrytype != 'page':
+            response = uploadFile(newpost['thumb_url'], thumb_mime)
+            if newpost['entrytype'] != 'page':
                 post.thumbnail = response['id']
             else:
                 page.thumbnail = response['id']
 
-    if entrytype != 'page':
+    if newpost['entrytype'] != 'page':
         post.id = WP.call(NewPost(post)) # Post it!
     else:
         page.id = WP.call(NewPost(page)) # or maybe post a page!
