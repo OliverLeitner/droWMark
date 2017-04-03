@@ -92,6 +92,19 @@ def getPostConfig( postfile ):
         post['thumb_url'] = path.join( here, post['thumbnail'] ) # Make path absolute
     return post
 
+def convertContent( inputcontent, source, target ):
+    """
+    content converter
+    """
+    postdocument = pf.convert_text(inputcontent, input_format=source,
+                                                output_format='panflute',
+                                                standalone=True)
+
+    pf.run_filters( [ imageURLs, codeBlocks ], doc = postdocument )
+    content = pf.convert_text(postdocument, input_format='panflute',
+                                            output_format=target)
+    return content
+
 def imageURLs(elem, doc):
     """
     Panflute filter for Image URLs.
@@ -219,15 +232,8 @@ def editPost ( postid ):
     #active tags
     tags = ','.join(map(str,post.terms))
 
-    # Take HTML, convert to markdown and put it as post content
-    # Makes intermediate convertion to Panflute AST to apply the filters.
-    postdocument = pf.convert_text(post.content, input_format='html',
-                                                output_format='panflute',
-                                                standalone=True)
-
-    pf.run_filters( [ imageURLs, codeBlocks ], doc = postdocument )
-    content = pf.convert_text(postdocument, input_format='panflute',
-                                            output_format='markdown')
+    #converting the content back to markdown
+    content = convertContent(post.content,'html','markdown')
 
     #fill the template
     buf = buf.replace('{TITLE}',post.title)
@@ -262,16 +268,8 @@ if __name__ == '__main__':
     else:
         page = WordPressPage()
 
-
-    # Take markdown, convert to HTML and put it as post content
-    # Makes intermediate convertion to Panflute AST to apply the filters.
-    postdocument = pf.convert_text(newpost['postcontent'], input_format='markdown',
-                                                output_format='panflute',
-                                                standalone=True)
-
-    pf.run_filters( [ imageURLs, codeBlocks ], doc = postdocument )
-    content = pf.convert_text(postdocument, input_format='panflute',
-                                            output_format='html')
+    #converting the content back to markdown
+    content = convertContent(post.content,'markdown','html')
 
     if newpost['entrytype'] != 'page':
         # Set post metadata
