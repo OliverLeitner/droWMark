@@ -220,7 +220,7 @@ if __name__ == '__main__':
 
     # Parse the INI part
     buf = StringIO(postconfig)
-    config_global = ConfigParser()
+    config = ConfigParser()
     config.readfp(buf)
 
     terms_names = {}
