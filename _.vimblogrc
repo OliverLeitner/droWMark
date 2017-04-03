@@ -3,3 +3,4 @@ url = www.your.blog
 username = yourusername
 password = yourpassword
 categories = category1,category2,category3
+article_status = publish

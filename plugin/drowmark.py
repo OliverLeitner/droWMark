@@ -17,6 +17,12 @@ import mimetypes
 
 WP = None
 postfile = ''
+username = ''
+password = ''
+url = ''
+categories = ''
+article_status = ''
+
 script_dir = os.path.dirname(os.path.realpath(__file__))
 home = os.path.expanduser('~')
 
@@ -31,6 +37,8 @@ def getConfig():
     url = 'https://' + url + '/xmlrpc.php'
     username = config.get('blog0','username')
     password = config.get('blog0','password')
+    article_status = config.get('blog0','article_status')
+    categories = config.get('blog0','categories')
 
     WP = Client( url, username, password )
     return WP
@@ -134,6 +142,7 @@ def publishPost ( postid ):
     publish an existing post
     """
     WP = getConfig()
+    content.post_status = article_status
     post = WP.call(EditPost(postid, content))
     print post
 
@@ -152,7 +161,6 @@ def editPost ( postid ):
     post = WP.call(GetPost(postid))
 
     #list of categories
-    categories = config.get('blog0','categories')
     active_categories = '';
     for term in post.terms:
         if term.name in categories:
