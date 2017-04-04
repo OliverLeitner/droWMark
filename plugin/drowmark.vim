@@ -39,6 +39,26 @@ function! PublishWordPress()
     execute l:publish
 endfunction
 
+"update an existing post to db
+function! UpdateWordPress()
+    "let l:file_name = expand('#:p')
+    let l:buffer = exec "$@"
+    let l:update = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"'.l:buffer.'\")"'
+    execute l:update
+endfunction
+
+"edit an existing post
+function! EditWordPress()
+    call inputsave()
+    let l:postid = input('Enter a post ID to edit: ')
+    call inputrestore()
+
+    let l:buffer = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.editPost('.l:postid.')"'
+    let l:name = system(l:buffer)
+    exec 'read '. l:name
+    setlocal ft=drowmark
+endfunction
+
 "delete an existing post
 function! DeleteWordPress()
     call inputsave()
@@ -53,6 +73,8 @@ let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
 command! ListWordPress call ListWordPress()
 command! PublishWordPress call PublishWordPress()
+command! UpdateWordPress call UpdateWordPress()
+command! EditWordPress call EditWordPress()
 command! DeleteWordPress call DeleteWordPress()
 command! NewWordPress call NewWordPress()
 command! PostWordPress call PostWordPress()

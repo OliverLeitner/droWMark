@@ -1,5 +1,7 @@
 import sys
 import os
+import tempfile
+import pprint
 from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
 from wordpress_xmlrpc.compat import xmlrpc_client
@@ -48,9 +50,9 @@ def getPostConfig( postfile ):
     putting this into a separate function might help later on
     with cleanup.
     """
-    post = {}
-    post['postconfig'] = ''
-    post['postcontent'] = ''
+    post = WordPressPost()
+    postconfig = ''
+    postcontent = ''
 
     inheader = True
     f = codecs.open(postfile, 'r', 'utf-8')
@@ -60,36 +62,40 @@ def getPostConfig( postfile ):
             if line.strip() == '---':
                 inheader = False
                 continue
-            post['postconfig'] += line
+            postconfig += line
             continue
         if not inheader:
-            post['postcontent'] += line
+            postcontent += line
             continue
     f.close()
 
     # Parse the INI part
-    buf = StringIO(post['postconfig'])
+    buf = StringIO(postconfig)
     config = ConfigParser()
     config.readfp(buf)
 
-    post['terms_names'] = {}
-    post['tags'] = config.get('wordpress', 'tags')
-    post['terms_names']['post_tag'] = map(lambda x: x.strip(),post['tags'].split(','))
+    post.terms_names = {}
+    post.tags = config.get('wordpress', 'tags')
+    post.terms_names['post_tag'] = map(lambda x: x.strip(),post.tags.split(','))
 
-    post['categories'] = config.get('wordpress', 'categories')
-    post['terms_names']['category'] = map(lambda x: x.strip(),post['categories'].split(','))
+    post.categories = config.get('wordpress', 'categories')
+    post.terms_names['category'] = map(lambda x: x.strip(),post.categories.split(','))
 
-    post['post_status'] = config.get('wordpress','status')
+    post.post_status = config.get('wordpress','status')
 
-    post['title'] = config.get('wordpress','title')
+    post.title = config.get('wordpress','title')
 
-    post['entrytype'] = config.get('wordpress','type')
+    post.entrytype = config.get('wordpress','type')
 
-    post['thumb_url'] = None
+    post.id = config.get('wordpress','id')
+
+    post.content = postcontent
+
+    post.thumb_url = None
     if config.has_option('wordpress','thumbnail'):
-        post['thumbnail'] = config.get('wordpress', 'thumbnail')
+        post.thumbnail = config.get('wordpress', 'thumbnail')
         here = path.dirname( postfile )
-        post['thumb_url'] = path.join( here, post['thumbnail'] ) # Make path absolute
+        post.thumb_url = path.join( here, post.thumbnail ) # Make path absolute
     return post
 
 def convertContent( inputcontent, source, target ):
@@ -207,6 +213,17 @@ def publishPost ( postid ):
     post = WP.call(EditPost(postid, content))
     print post
 
+def updatePost ( updatepostfile ):
+    """
+    writeing back the changed content to db
+    """
+    #print updatepostfile
+    #sys.exit()
+    WP = getConfig()
+    post = getPostConfig(updatepostfile)
+    update = WP.call(EditPost(post.id,post))
+    print update
+
 def editPost ( postid ):
     """
     edit an existing post
@@ -217,33 +234,40 @@ def editPost ( postid ):
     file = open(postfile,'rU')
     buf = file.read()
 
+    config = ConfigParser()
+    config.read(home + '/.vimblogrc')
+    configcategories = config.get('blog0','categories')
+
     # getting the data of the post
     WP = getConfig()
     post = WP.call(GetPost(postid))
-
-    #list of categories
-    active_categories = '';
+    active_tags = ''
+    active_categories = ''
     for term in post.terms:
-        if term.name in categories:
+        if term.name in configcategories:
             active_categories += term.name + ','
+        else:
+            active_tags += term.name + ','
 
+    active_tags = active_tags[:-1]
     active_categories = active_categories[:-1]
-
-    #active tags
-    tags = ','.join(map(str,post.terms))
+    #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
     content = convertContent(post.content,'html','markdown')
 
     #fill the template
+    buf = buf.replace('{ID}',post.id)
     buf = buf.replace('{TITLE}',post.title)
     buf = buf.replace('{STATUS}',post.post_status)
     buf = buf.replace('{CATEGORIES}',active_categories)
-    buf = buf.replace('{TAGS}',tags)
+    buf = buf.replace('{TAGS}',active_tags)
     buf = buf.replace('{CONTENT}',content)
 
-    print buf
-    sys.exit()
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.write(buf)
+    f.close()
+    print f.name
 
 if __name__ == '__main__':
 
@@ -263,37 +287,37 @@ if __name__ == '__main__':
     # Wordpress related, create the post
     WP = getConfig()
 
-    if newpost['entrytype'] != 'page':
+    if newpost.entrytype != 'page':
         post = WordPressPost()
     else:
         page = WordPressPage()
 
     #converting the content back to markdown
-    content = convertContent(post.content,'markdown','html')
+    content = convertContent(newpost.content,'markdown','html')
 
-    if newpost['entrytype'] != 'page':
+    if newpost.entrytype != 'page':
         # Set post metadata
-        post.title = newpost['title']
+        post.title = newpost.title
         post.content = content
-        post.post_status = newpost['post_status']
-        post.terms_names = newpost['terms_names']
+        post.post_status = newpost.post_status
+        post.terms_names = newpost.terms_names
     else:
         # i just do the same for pages
         # except we dont need the tags
-        page.title = newpost['title']
+        page.title = newpost.title
         page.content = content
-        page.post_status = newpost['post_status']
+        page.post_status = newpost.post_status
 
-    if not newpost['thumb_url'] == None:
-        thumb_mime = checkImage(newpost['thumb_url'])
+    if not newpost.thumb_url == None:
+        thumb_mime = checkImage(newpost.thumb_url)
         if not thumb_mime == None:
-            response = uploadFile(newpost['thumb_url'], thumb_mime)
-            if newpost['entrytype'] != 'page':
+            response = uploadFile(newpost.thumb_url, thumb_mime)
+            if newpost.entrytype != 'page':
                 post.thumbnail = response['id']
             else:
                 page.thumbnail = response['id']
 
-    if newpost['entrytype'] != 'page':
+    if newpost.entrytype != 'page':
         post.id = WP.call(NewPost(post)) # Post it!
     else:
         page.id = WP.call(NewPost(page)) # or maybe post a page!
