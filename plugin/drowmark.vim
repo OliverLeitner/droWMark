@@ -34,17 +34,17 @@ function! PublishWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to publish: ')
     call inputrestore()
-
     let l:publish = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.publishPost('.l:postid.')"'
     execute l:publish
 endfunction
 
 "update an existing post to db
 function! UpdateWordPress()
-    "let l:file_name = expand('#:p')
-    let l:buffer = exec "$@"
-    let l:update = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"'.l:buffer.'\")"'
+    execute 'write /tmp/updatePost'
+    execute 'close'
+    let l:update = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"/tmp/updatePost\")"'
     execute l:update
+    execute '!rm -f /tmp/updatePost'
 endfunction
 
 "edit an existing post
