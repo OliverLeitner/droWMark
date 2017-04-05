@@ -231,8 +231,8 @@ def editPost ( postid ):
     # loading the template file for putting
     # returned markdown into
     postfile = script_dir + '/../templates/drowmark.template'
-    file = open(postfile,'rU')
-    buf = file.read()
+    pfile = codecs.open(postfile, 'r', 'utf-8')
+    buf = pfile.read()
 
     config = ConfigParser()
     config.read(home + '/.vimblogrc')
@@ -254,8 +254,6 @@ def editPost ( postid ):
     #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
-    temp = post.content
-    post.content = temp.encode('ascii','ignore')
     content = convertContent(post.content,'html','markdown')
 
     #fill the template
@@ -267,8 +265,12 @@ def editPost ( postid ):
     buf = buf.replace('{CONTENT}',content)
 
     f = tempfile.NamedTemporaryFile(suffix=post.id,prefix='vwp_edit',delete=False)
-    f.write(buf)
+    filename = f.name
     f.close()
+    with codecs.open(filename, 'w+b', encoding='utf-8') as fh:
+        fh.write(buf)
+        fh.seek(0)
+
     print f.name
 
 if __name__ == '__main__':
