@@ -1,5 +1,6 @@
 import sys
 import os
+import glob
 import tempfile
 import pprint
 from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
@@ -217,12 +218,11 @@ def updatePost ( updatepostfile ):
     """
     writeing back the changed content to db
     """
-    #print updatepostfile
-    #sys.exit()
     WP = getConfig()
     post = getPostConfig(updatepostfile)
     update = WP.call(EditPost(post.id,post))
-    print update
+
+    print post.id
 
 def editPost ( postid ):
     """
@@ -254,6 +254,8 @@ def editPost ( postid ):
     #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
+    temp = post.content
+    post.content = temp.encode('ascii','ignore')
     content = convertContent(post.content,'html','markdown')
 
     #fill the template
@@ -264,7 +266,7 @@ def editPost ( postid ):
     buf = buf.replace('{TAGS}',active_tags)
     buf = buf.replace('{CONTENT}',content)
 
-    f = tempfile.NamedTemporaryFile(delete=False)
+    f = tempfile.NamedTemporaryFile(suffix=post.id,prefix='vwp_edit',delete=False)
     f.write(buf)
     f.close()
     print f.name

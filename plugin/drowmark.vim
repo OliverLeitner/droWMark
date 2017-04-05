@@ -40,22 +40,28 @@ endfunction
 
 "update an existing post to db
 function! UpdateWordPress()
-    execute 'write /tmp/updatePost'
-    execute 'close'
-    let l:update = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"/tmp/updatePost\")"'
-    execute l:update
-    execute '!rm -f /tmp/updatePost'
-endfunction
+    let l:tmpdir = system('echo $(dirname $(mktemp -u))')
+    silent! exec 'write /tmp/updatePost'
+    silent! exec 'close'
+    let l:update = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"/tmp/updatePost\")"'
+    let l:tmpname = system(l:update)
+    silent! exec '!rm -f /tmp/updatePost'
+    exec '!rm -f /tmp/vwp_edit*'.l:tmpname
+endfunction!
 
 "edit an existing post
 function! EditWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to edit: ')
     call inputrestore()
-
     let l:buffer = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.editPost('.l:postid.')"'
     let l:name = system(l:buffer)
-    exec 'read '. l:name
+    if winnr() > 1
+        exec 'read '. l:name
+    else
+        exec 'vertical new'. l:name
+        exec 'vertical resize +60'
+    endif
     setlocal ft=drowmark
 endfunction
 
