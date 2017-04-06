@@ -74,12 +74,14 @@ function! DeleteWordPress()
     execute l:delete
 endfunction
 
+"dynamic temporary directories
 let s:tmp = ''
-let s:os = system('echo $OSTYPE')
+let s:operate = 'python -c "import os; print os.name"'
+let s:os = system(s:operate)
+echom s:os
 
 "im only running gnu, more to come, options are
-"linux-gnu, darwin, cygwin, msys, win32, freebsd and more...
-if s:os =~ 'linux-gnu'
+if s:os =~ 'posix'
     let s:tmp = escape('/tmp','\')
 endif
 
