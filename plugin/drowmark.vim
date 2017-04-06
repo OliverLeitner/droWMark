@@ -78,7 +78,6 @@ endfunction
 let s:tmp = ''
 let s:operate = 'python -c "import os; print os.name"'
 let s:os = system(s:operate)
-echom s:os
 
 "im only running gnu, more to come, options are
 if s:os =~ 'posix'
