@@ -40,13 +40,12 @@ endfunction
 
 "update an existing post to db
 function! UpdateWordPress()
-    let l:tmpdir = system('echo $(dirname $(mktemp -u))')
-    silent! exec 'write /tmp/updatePost'
+    silent! exec 'write '.s:tmp.'/updatePost'
     silent! exec 'close'
-    let l:update = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"/tmp/updatePost\")"'
+    let l:update = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"'.s:tmp.'/updatePost\")"'
     let l:tmpname = system(l:update)
-    silent! exec '!rm -f /tmp/updatePost'
-    exec '!rm -f /tmp/vwp_edit*'.l:tmpname
+    silent! exec '!rm -f '.s:tmp.'/updatePost'
+    exec '!rm -f '.s:tmp.'/vwp_edit*'.l:tmpname
 endfunction!
 
 "edit an existing post
@@ -74,6 +73,15 @@ function! DeleteWordPress()
     let l:delete = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.deletePost('.l:postid.')"'
     execute l:delete
 endfunction
+
+let s:tmp = ''
+let s:os = system('echo $OSTYPE')
+
+"im only running gnu, more to come, options are
+"linux-gnu, darwin, cygwin, msys, win32, freebsd and more...
+if s:os =~ 'linux-gnu'
+    let s:tmp = escape('/tmp','\')
+endif
 
 let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
