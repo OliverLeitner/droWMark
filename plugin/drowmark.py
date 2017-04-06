@@ -29,6 +29,15 @@ article_status = ''
 script_dir = os.path.dirname(os.path.realpath(__file__))
 home = os.path.expanduser('~')
 
+def removefiles( path, pid ):
+    """
+    just remove some files by wildcard
+    """
+    files = os.listdir(path)
+    for file in files:
+        if file.endswith(pid):
+            os.remove(os.path.join(path,file))
+
 def getConfig():
     """
     read configuration and return a set wordpress link
@@ -222,7 +231,8 @@ def updatePost ( updatepostfile ):
     post = getPostConfig(updatepostfile)
     update = WP.call(EditPost(post.id,post))
 
-    print post.id
+    pid = post.id
+    print pid.strip()
 
 def editPost ( postid ):
     """

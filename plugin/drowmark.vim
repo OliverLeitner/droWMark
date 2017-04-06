@@ -44,8 +44,12 @@ function! UpdateWordPress()
     silent! exec 'close'
     let l:update = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"'.s:tmp.'/updatePost\")"'
     let l:tmpname = system(l:update)
-    silent! exec '!rm -f '.s:tmp.'/updatePost'
-    exec '!rm -f '.s:tmp.'/vwp_edit*'.l:tmpname
+    let l:tmpname2 = systemlist('echo '.l:tmpname)[0]
+    let l:dupp = 'python -c "import os; os.unlink(\"'.s:tmp.'/updatePost\")"'
+    let l:dupp2 = system(l:dupp)
+    let l:delpid = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.removefiles(\"'.s:tmp.'\",\"'.l:tmpname2.'\")"'
+    let l:delpid2 = system(l:delpid)
+    "exec l:delpid
 endfunction!
 
 "edit an existing post
