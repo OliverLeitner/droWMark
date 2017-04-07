@@ -73,23 +73,73 @@ function! DeleteWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to delete: ')
     call inputrestore()
-
     let l:delete = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.deletePost('.l:postid.')"'
     execute l:delete
 endfunction
 
+"writing the base configuration
+"kind of a setuptool
+function! ConfigWordPress()
+    call inputsave()
+    let l:url = input('Please enter the name of your blog: ')
+    call inputrestore()
+    echo "\n"
+    call inputsave()
+    let l:categories = input('Which categories does your blog cover: ')
+    call inputrestore()
+    echo "\n"
+    call inputsave()
+    let l:article_status = input('Do you directly publish (publish) or are you just an editor (draft): ')
+    call inputrestore()
+    echo "\n"
+    call inputsave()
+    let l:username = input('Please enter your blog username: ')
+    call inputrestore()
+    echo "\n"
+    echo "Please enter your blogs password: "
+    let l:password = s:getPass()
+    let l:message = "[blog0]\nurl = ".l:url."\nusername = ".l:username."\npassword = ".l:password."\ncategories = ".l:categories."\narticle_status = ".l:article_status
+    call ConfigFileWordPress(l:message)
+endfunction
+
+function! ConfigFileWordPress(message)
+    setlocal buftype=nofile bufhidden=hide noswapfile nobuflisted
+    put=a:message
+    echom s:file
+    execute 'wq '.s:path.'/../'.s:file
+endfunction
+
+" Get password without showing the echo in the screen
+function! s:getPass()
+    let password = ""
+    let char = nr2char(getchar())
+    while char !=  "\<CR>"
+        let password = password . char
+        let char = nr2char(getchar())
+    endwhile
+    return password
+endfunction
+
+function! DoTest()
+    echom s:path
+endfunction
+
 "dynamic temporary directories
 let s:tmp = ''
+"dynamic config file path
+let s:file = ''
 let s:operate = 'python -c "import os; print os.name"'
 let s:os = system(s:operate)
 
 "im only running gnu, more to come, options are
 if s:os =~ 'posix'
     let s:tmp = escape('/tmp','\')
+    let s:file = '.vimblogrc'
 endif
 
 let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
+command! DoTest call DoTest()
 command! ListWordPress call ListWordPress()
 command! PublishWordPress call PublishWordPress()
 command! UpdateWordPress call UpdateWordPress()
@@ -97,3 +147,4 @@ command! EditWordPress call EditWordPress()
 command! DeleteWordPress call DeleteWordPress()
 command! NewWordPress call NewWordPress()
 command! PostWordPress call PostWordPress()
+command! ConfigWordPress call ConfigWordPress()

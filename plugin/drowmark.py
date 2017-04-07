@@ -43,7 +43,11 @@ def getConfig():
     read configuration and return a set wordpress link
     """
     config = ConfigParser()
-    config.read(home + '/.vimblogrc')
+    if os.name == 'posix':
+        config.read(script_dir + '/../.vimblogrc')
+    else:
+        #this should cover windows
+        config.read(script_dir + '/../_.vimblogrc')
 
     url = config.get('blog0','url')
     url = 'https://' + url + '/xmlrpc.php'
