@@ -105,7 +105,6 @@ endfunction
 function! ConfigFileWordPress(message)
     setlocal buftype=nofile bufhidden=hide noswapfile nobuflisted
     put=a:message
-    echom s:file
     execute 'wq '.s:path.'/../'.s:file
 endfunction
 
@@ -118,10 +117,6 @@ function! s:getPass()
         let char = nr2char(getchar())
     endwhile
     return password
-endfunction
-
-function! DoTest()
-    echom s:path
 endfunction
 
 "dynamic temporary directories
@@ -139,7 +134,6 @@ endif
 
 let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
-command! DoTest call DoTest()
 command! ListWordPress call ListWordPress()
 command! PublishWordPress call PublishWordPress()
 command! UpdateWordPress call UpdateWordPress()

@@ -47,7 +47,7 @@ def getConfig():
         config.read(script_dir + '/../.vimblogrc')
     else:
         #this should cover windows
-        config.read(script_dir + '/../_.vimblogrc')
+        config.read(script_dir + '/../_vimblogrc')
 
     url = config.get('blog0','url')
     url = 'https://' + url + '/xmlrpc.php'
@@ -249,7 +249,11 @@ def editPost ( postid ):
     buf = pfile.read()
 
     config = ConfigParser()
-    config.read(home + '/.vimblogrc')
+    if os.name == 'posix':
+        config.read(script_dir + '/../.vimblogrc')
+    else:
+        config.read(script_dir + '/../_vimblogrc')
+
     configcategories = config.get('blog0','categories')
 
     # getting the data of the post
