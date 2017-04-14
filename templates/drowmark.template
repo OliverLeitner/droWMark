@@ -1,5 +1,6 @@
 [wordpress]
 
+# the id of the blogpost we are updating/editing
 id = {ID}
 
 # Title of your blog post here

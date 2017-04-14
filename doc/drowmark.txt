@@ -20,9 +20,10 @@ CONTENTS                                                   *drowmark-contents*
     2. Functionality..............................|drowmark-functionality|
         2.1 Python file...........................|drowmark-python|
     3. Commands...................................|drowmark-commands|
-    4. Configuration..............................|drowmark-configuration|
-    5. About......................................|drowmark-about|
-    6. License....................................|drowmark-license|
+    4. Template Configuration.....................|drowmark-configuration|
+    5. Blog Configuration.........................|drowmark-mainconfig|
+    6. About......................................|drowmark-about|
+    7. License....................................|drowmark-license|
 
 ==============================================================================
 1. Intro                                                      *drowmark-guide*
@@ -34,13 +35,26 @@ header in the top of the files.
 ------------------------------------------------------------------------------
 1.2 Quick Start                                          *drowmark-quickstart*
 
-Create a new file with .wp extension or an empty file and run
-|:NewWordPress| to create a template for the configuration. Fill the sections
-following the template or this document and write the post under the
-configuration template using Pandoc Flavoured Markdown.
+Create a configuration for your wordpress blog via |:ConfigWordPress|
 
-When the blog post is done, run |:PostWordPress| and enter the username and
-password and it will be posted in WordPress.
+List all existing posts on your blog with |:ListWordPress|
+
+Open a new buffer and run |:NewWordPress| to create a new template using 
+Pandoc Flavoured Markdown.
+
+When the blog post is done, run |:PostWordPress| to publish the new blog
+entry.
+
+To change the status of your new post to publish, run |:PublishWordpress|
+
+To edit an existing blog post, run |:EditWordPress| and enter the id of the
+post, you may find the ids with the |:ListWordPress| command mentoined above.
+
+To write the changed blogpost back to your blog, run |:UpdateWordpress|
+
+To delete a post, run |:DeleteWordPress|, it will ask you for the id of the
+post that you want to delete, just take it from the |:ListWordPress|, the post
+will be moved into the recycle bin.
 
 ------------------------------------------------------------------------------
 1.3 Upload Images                                             *drowmark-image*
@@ -80,11 +94,26 @@ for the configuration part of the .wp files.
 
 Python file (plugin/drowmark.py) has all the logic of the publishing and
 parsing. It is completely independent from vim and can be called directly,
-using username, password and filename as input parameters (in that order).
-This will upload the post to WordPress from outside Vim.
+allowing you to run all the commands from outside Vim.
 
 ==============================================================================
 3. Commands                                                *drowmark-commands*
+
+:ConfigWordPress                                            *:ConfigWordPress*
+
+Generate a configuration file for your wordpress blog.
+
+:ListWordpress                                                *:ListWordPress*
+
+Lists all existing wordpress entries.
+
+:EditWordpress                                                *:EditWordPress*
+
+Edit an existing blog post.
+
+:UpdateWordPress                                            *:UpdateWordPress*
+
+Write the changes you made to an existing blog post back to your blog
 
 :NewWordPress                                                  *:NewWordPress*
 
@@ -92,13 +121,28 @@ Appends a template at the cursor position and change the filetype to drowmark.
 
 :PostWordPress                                                *:PostWordPress*
 
-Asks the user for the username and password for the wordpress account and
-uploads the current file. Current file MUST be saved to be uploaded. The post
-will be uploaded with the status marked on the configuration, if the
-|drowmark-status| is published it will be posted as public automatically.
+Post your freshly created wordpress blog entry on your blog, the default is
+that the post will be saved as draft, you can change the default post status
+when running :ConfigWordpress command or later on in your generated .vimblogrc 
+file.
+
+:PublishWordPress                                          *:PublishWordPress*
+
+Set the status of your post to publish, making it available to the public.
+
+:DeleteWordPress                                            *:DeleteWordPress*
+
+Delete an existing wordpress blog entry, the post will be moved to the recycle
+bin, so you can later on recover it.
 
 ==============================================================================
-4. Configuration                                      *drowmark-configuration*
+4. Template  Configuration                            *drowmark-configuration*
+
+id                                                               *drowmark-id*
+
+Defines the id of an existing post.
+Example: >
+    id = 166
 
 title                                                         *drowmark-title*
 
@@ -126,12 +170,6 @@ Example: >
     tags = markdown, wordpress, vim, plugin
 <
 
-url                                                              *drowmark-url*
-
-The URL of the blog. "https://" and "/xmlrpc" will be added automatically.
-Example: >
-    url = miblog.wordpress.com
-<
 thumbnail                                                   *drowmark-thumbnail*
 
 The URL of Relative Path to the Post Thumbnail. If relative path, it will be
@@ -140,16 +178,55 @@ Example: >
     thumbnail = images/thumb.jpg
 
 ==============================================================================
-5. About                                                       *drowmark-about*
+5. Blog Configuration                                     *drowmark-mainconfig*
 
-    Author and mantainer:
-        Ekaitz Zárraga (GitHub: ekaitz-zarraga)
+url                                                              *drowmark-url*
 
-    Find the latest version at GitHub:
-        http://github.com/ekaitz-zarraga/drowmark
+The URL of the blog. "https://" and "/xmlrpc" will be added automatically.
+Example: >
+    url = www.neverslair-blog.net
+
+username                                                    *drowmark-username*
+
+The name of the user that is allowed to post to the blog
+Example: >
+    username = johndoe
+
+password                                                    *drowmark-password*
+
+Your blog users password
+Example: >
+    password = secretsexgod
+
+categories                                                *drowmark-categories*
+
+The list of categories that you are allowed to post in
+Example: >
+    categories = personal, technical, nature
+
+article_status                                        *drowmark-article_status*
+
+The status you are allowed to publish to
+Example >
+    article_status = publish
 
 ==============================================================================
-6. License                                                   *drowmark-license*
+6. About                                                       *drowmark-about*
+
+    Original author and mantainer:
+        Ekaitz Zárraga (GitHub: ekaitz-zarraga)
+
+    Modified and enhanced by:
+        Oliver Leitner (Github: OliverLeitner)
+
+    Find the latest version at GitHub:
+        https://github.com/OliverLeitner/drowmark
+
+    Find the original version at GitHub:
+        https://github.com/ekaitz-zarraga/drowmark
+
+==============================================================================
+7. License                                                   *drowmark-license*
 
     droWMark is distributed under GPLv3 license.
     See http://www.gnu.org/licenses/gpl.html

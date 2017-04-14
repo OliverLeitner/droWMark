@@ -3,7 +3,7 @@
 
 
 " Define some keywords for the headers
-syntax keyword headerKeyword title status categories tags url containedin=headerLabel
+syntax keyword headerKeyword id title status categories tags containedin=headerLabel
 highlight link headerKeyword Keyword
 syntax keyword headerHead wordpress containedin=headerSection
 highlight link headerHead Constant
