@@ -11,6 +11,14 @@ a MarkDown content. There is a template in `templates` directory.
 Install the plugin using Vundle, Pathogen (or other package management tool) or
 Manually. (see below)
 
+Configure your blog using (this will write a file called either .vimblogrc or 
+_vimblogrc in the root in the root directory of this plugin:
+
+
+```
+:ConfigWordPress
+```
+
 When the plugin is installed, you can create a new blog entry using:
 
 ```
@@ -30,8 +38,39 @@ following command:
 :PostWordPress
 ```
 
-This will ask for the username and the password before publishing the post in
-WordPress.
+To get a list of available posts i.e. if you want to edit or publish or 
+delete an existing entry, please use:
+
+```
+:ListWordPress
+```
+
+To edit an existing blog post:
+
+```
+:EditWordPress
+```
+
+This will ask you for the blog id you want to edit, you will find the blog ids 
+available to you with the above command :ListWordPress
+
+After editing a post, you might want to update it on the blog, to do so use:
+
+```
+:UpdateWordPress
+```
+
+To delete an existing post, use:
+
+```
+:DeleteWordPress
+```
+
+And last but not least, to publish your post, type:
+
+```
+:PublishWordPress
+```
 
 ### Upload Images
 
