@@ -300,6 +300,54 @@ def myeditpost(postid):
 
     print(file_handle.name)
 
+def mynewpost(s_postfile):
+    """
+    writing a new blog post
+    """
+    my_link = mygetconfig()
+    l_newpost = mygetpostconfig(s_postfile)
+
+    if l_newpost.entrytype != 'page':
+        l_post = WordPressPost()
+    else:
+        l_page = WordPressPage()
+
+    l_content = myconvertcontent(l_newpost.content, 'markdown', 'html')
+
+    if l_newpost.entrytype != 'page':
+        # Set post metadata
+        l_post.title = l_newpost.title
+        l_post.content = l_content
+        l_post.post_status = l_newpost.post_status
+        l_post.terms_names = l_newpost.terms_names
+    else:
+        # i just do the same for pages
+        # except we dont need the tags
+        l_page.title = l_newpost.title
+        l_page.content = l_content
+        l_page.post_status = l_newpost.post_status
+
+    if l_newpost.thumb_url != None:
+        thumb_mime = mycheckimage(l_newpost.thumb_url)
+        if thumb_mime != None:
+            l_response = myuploadfile(l_newpost.thumb_url, thumb_mime)
+            if l_newpost.entrytype != 'page':
+                l_post.thumbnail = l_response['id']
+            else:
+                l_page.thumbnail = l_response['id']
+
+    l_out = None
+    if l_newpost.entrytype != 'page':
+        l_post.id = my_link.call(NewPost(l_post)) # Post it!
+        l_out = l_post
+    else:
+        l_page.id = my_link.call(NewPost(l_page)) # or maybe post a page!
+        l_out = l_page
+
+    print("Posted: " + l_out.title)
+    print("\nWith Status: " + l_out.post_status)
+    print("\nAnd ID: " + l_out.id)
+
 if __name__ == '__main__':
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
@@ -307,53 +355,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print('1 parameter needed:\n\t file')
         raise BaseException
-
-    L_POSTFILE = sys.argv[1]
-
-    # grabbing the template and inserting what we already can...
-    L_NEWPOST = mygetpostconfig(L_POSTFILE)
-
-    # Wordpress related, create the post
-    MY_LINK = mygetconfig()
-
-    if L_NEWPOST.entrytype != 'page':
-        L_POST = WordPressPost()
     else:
-        L_PAGE = WordPressPage()
-
-    #converting the content back to markdown
-    L_CONTENT = myconvertcontent(L_NEWPOST.content, 'markdown', 'html')
-
-    if L_NEWPOST.entrytype != 'page':
-        # Set post metadata
-        L_POST.title = L_NEWPOST.title
-        L_POST.content = L_CONTENT
-        L_POST.post_status = L_NEWPOST.post_status
-        L_POST.terms_names = L_NEWPOST.terms_names
-    else:
-        # i just do the same for pages
-        # except we dont need the tags
-        L_PAGE.title = L_NEWPOST.title
-        L_PAGE.content = L_CONTENT
-        L_PAGE.post_status = L_NEWPOST.post_status
-
-    if L_NEWPOST.thumb_url != None:
-        THUMB_MIME = mycheckimage(L_NEWPOST.thumb_url)
-        if THUMB_MIME != None:
-            L_RESPONSE = myuploadfile(L_NEWPOST.thumb_url, THUMB_MIME)
-            if L_NEWPOST.entrytype != 'page':
-                L_POST.thumbnail = L_RESPONSE['id']
-            else:
-                L_PAGE.thumbnail = L_RESPONSE['id']
-
-    L_OUT = None
-    if L_NEWPOST.entrytype != 'page':
-        L_POST.id = MY_LINK.call(NewPost(L_POST)) # Post it!
-        L_OUT = L_POST
-    else:
-        L_PAGE.id = MY_LINK.call(NewPost(L_PAGE)) # or maybe post a page!
-        L_OUT = L_PAGE
-
-    print("Posted: " + L_OUT.title)
-    print("\nWith Status: " + L_OUT.post_status)
-    print("\nAnd ID: " + L_OUT.id)
+        # FIXME put switches for all functions here
+        mynewpost(sys.argv[1])

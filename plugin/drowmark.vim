@@ -45,8 +45,6 @@ function! ListWordPress()
     silent execute '!clear'
     let l:bloglist = '!' . s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.mygetallposts(0,20)"'
     execute l:bloglist
-    "exec 'read '. l:bloglist
-    "setlocal buftype=nofile
 endfunction
 
 "publish an existing post
@@ -69,7 +67,6 @@ function! UpdateWordPress()
     let l:dupp2 = system(l:dupp)
     let l:delpid = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myremovefiles(\"'.s:tmp.'\",\"'.l:tmpname2.'\")"'
     let l:delpid2 = system(l:delpid)
-    "exec l:delpid
 endfunction!
 
 "edit an existing post
