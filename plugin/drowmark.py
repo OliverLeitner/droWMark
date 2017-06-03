@@ -5,45 +5,35 @@ from __future__ import print_function
 
 import sys
 import os
-#import glob
 import tempfile
-#import pprint
 import codecs
 import mimetypes
 
 from io import StringIO
-
-try:
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
 from wordpress_xmlrpc.compat import xmlrpc_client
-from wordpress_xmlrpc.methods import media, posts
+from wordpress_xmlrpc.methods import media #, posts
 
 import panflute as pf
 
-WP = None
-postfile = ''
-username = ''
-password = ''
-url = ''
-categories = ''
-article_status = ''
+POSTFILE = ''
+CATEGORIES = ''
+ARTICLE_STATUS = ''
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-home = os.path.expanduser('~')
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+HOME = os.path.expanduser('~')
 
 def myremovefiles(path, pid):
     """
     just remove some files by wildcard
     """
     files = os.listdir(path)
-    for file in files:
-        if file.endswith(pid):
-            os.remove(os.path.join(path,file))
+    for fileentries in files:
+        if fileentries.endswith(pid):
+            os.remove(os.path.join(path, fileentries))
 
 def mygetconfig():
     """
@@ -51,34 +41,35 @@ def mygetconfig():
     """
     config = ConfigParser()
     if os.name == 'posix':
-        config.read(script_dir + '/../.vimblogrc')
+        config.read(SCRIPT_DIR + '/../.vimblogrc')
     else:
         #this should cover windows
-        config.read(script_dir + '/../_vimblogrc')
+        config.read(SCRIPT_DIR + '/../_vimblogrc')
 
-    global categories, article_status
+    # FIXME remove any global deps
+    global CATEGORIES, ARTICLE_STATUS
     url = config.get('blog0', 'url')
     url = 'https://' + url + '/xmlrpc.php'
     username = config.get('blog0', 'username')
     password = config.get('blog0', 'password')
-    article_status = config.get('blog0', 'article_status')
-    categories = config.get('blog0', 'categories')
+    ARTICLE_STATUS = config.get('blog0', 'article_status')
+    CATEGORIES = config.get('blog0', 'categories')
 
-    WP = Client(url, username, password)
-    return WP
+    my_link = Client(url, username, password)
+    return my_link
 
-def mygetpostconfig(postfile):
+def mygetpostconfig(s_postfile):
     """
     putting this into a separate function might help later on
     with cleanup.
     """
-    post = WordPressPost()
+    l_post = WordPressPost()
     postconfig = ''
     postcontent = ''
 
     inheader = True
-    f = codecs.open(postfile, 'r', 'utf-8')
-    for line in f:
+    tmp_file = codecs.open(s_postfile, 'r', 'utf-8')
+    for line in tmp_file:
         if inheader:
             # FIXME Improve this check
             if line.strip() == '---':
@@ -89,48 +80,61 @@ def mygetpostconfig(postfile):
         if not inheader:
             postcontent += line
             continue
-    f.close()
+    tmp_file.close()
 
     # Parse the INI part
     buf = StringIO(postconfig)
     config = ConfigParser()
     config.readfp(buf)
 
-    post.terms_names = {}
-    post.tags = config.get('wordpress', 'tags')
-    post.terms_names['post_tag'] = list(map(lambda x: x.strip(), post.tags.split(',')))
+    l_post.terms_names = {}
+    l_post.tags = config.get('wordpress', 'tags')
+    # FIXME clearing up unneeded map
+    l_post.terms_names['post_tag'] = list(map(lambda x: x.strip(), l_post.tags.split(',')))
 
-    post.categories = config.get('wordpress', 'categories')
-    post.terms_names['category'] = list(map(lambda x: x.strip(), post.categories.split(',')))
+    l_post.categories = config.get('wordpress', 'categories')
+    # FIXME clearing up unneeded map
+    l_post.terms_names['category'] = list(map(lambda x: x.strip(), l_post.categories.split(',')))
 
-    post.post_status = config.get('wordpress', 'status')
+    l_post.post_status = config.get('wordpress', 'status')
 
-    post.title = config.get('wordpress', 'title')
+    l_post.title = config.get('wordpress', 'title')
 
-    post.entrytype = config.get('wordpress', 'type')
+    l_post.entrytype = config.get('wordpress', 'type')
 
-    post.id = config.get('wordpress', 'id')
+    l_post.id = config.get('wordpress', 'id')
 
-    post.content = postcontent
+    l_post.content = postcontent
 
-    post.thumb_url = None
+    l_post.thumb_url = None
     if config.has_option('wordpress', 'thumbnail'):
-        post.thumbnail = config.get('wordpress', 'thumbnail')
-        here = os.path.dirname(postfile)
-        post.thumb_url = os.path.join(here, post.thumbnail) # Make path absolute
-    return post
+        l_post.thumbnail = config.get('wordpress', 'thumbnail')
+        here = os.path.dirname(s_postfile)
+        l_post.thumb_url = os.path.join(here, l_post.thumbnail) # Make path absolute
+    return l_post
 
 def myconvertcontent(inputcontent, source, target):
     """
     content converter
     """
-    postdocument = pf.convert_text(inputcontent, input_format=source,
-                                                output_format='panflute',
-                                                standalone=True)
+    postdocument = pf.convert_text(
+        inputcontent,
+        input_format=source,
+        output_format='panflute',
+        standalone=True
+    )
 
-    pf.run_filters([myimageurls, mycodeblocks], doc=postdocument)
-    content = pf.convert_text(postdocument, input_format='panflute',
-                                            output_format=target)
+    pf.run_filters(
+        [myimageurls, mycodeblocks],
+        doc=postdocument
+    )
+
+    content = pf.convert_text(
+        postdocument,
+        input_format='panflute',
+        output_format=target
+    )
+
     return content
 
 def myimageurls(elem, doc):
@@ -139,16 +143,16 @@ def myimageurls(elem, doc):
     Checks if the URLs are relative paths and match an image file. If they do,
     it uploads the image and changes the URL to point to that.
     """
-
     if isinstance(elem, pf.Image):
         # Handles paths if they are relative to the post
-        here = os.path.dirname(postfile)
+        here = os.path.dirname(doc.location)
         url = os.path.join(here, elem.url) # Make path absolute
         mime = mycheckimage(url)
         res = myuploadfile(url, mime)
         elem.url = res['url']
         return elem
 
+# FIXME doc -> removal if possible
 def mycodeblocks(elem, doc):
     """
     If input is a CodeBlock, just tag it as a code piece and put the language.
@@ -193,58 +197,61 @@ def myuploadfile(url, mime):
     data = {}
     data['name'] = os.path.basename(url)
     data['type'] = mime
-    with open(url) as f:
-        data['bits'] = xmlrpc_client.Binary(f.read())
+    with open(url) as img_file:
+        data['bits'] = xmlrpc_client.Binary(img_file.read())
 
-    response = WP.call(media.UploadFile(data))
+    my_link = mygetconfig()
+    response = my_link.call(media.UploadFile(data))
     return response
 
 def mygetallposts(offset, increment):
     """
     lets do the wordpress post listing thing
     """
-
-    WP = mygetconfig()
+    my_link = mygetconfig()
 
     print('============== blog entries =================')
     while True:
-        posts = WP.call(GetPosts({'number': increment, 'offset': offset}))
+        posts = my_link.call(GetPosts({'number': increment, 'offset': offset}))
         if len(posts) == 0:
             break  # no more posts returned
-        for post in posts:
+        for l_post in posts:
             #post_str = str(post)
             #tags = ','.join(map(str,post.terms))
-            categories = ','.join(map(str, post.terms))
-            print(post.id + ' - ' + post.title + ' - ' + categories)
+            # FIXME map -> list
+            l_categories = ','.join(map(str, l_post.terms))
+            print(l_post.id + ' - ' + l_post.title + ' - ' + l_categories)
         offset = offset + increment
 
 def mydeletepost(postid):
     """
     delete a blogpost
     """
-    WP = mygetconfig()
-    post = WP.call(DeletePost(postid))
-    print(post)
+    my_link = mygetconfig()
+    l_post = my_link.call(DeletePost(postid))
+    print(l_post)
 
 def mypublishpost(postid):
     """
     publish an existing post
     """
-    WP = mygetconfig()
-    content = WP.call(GetPost(postid))
-    content.post_status = article_status
-    post = WP.call(EditPost(postid, content))
-    print(post)
+    # FIXME global vars -> init function
+    global ARTICLE_STATUS
+    my_link = mygetconfig()
+    l_content = my_link.call(GetPost(postid))
+    l_content.post_status = ARTICLE_STATUS
+    l_post = my_link.call(EditPost(postid, l_content))
+    print(l_post)
 
 def myupdatepost(updatepostfile):
     """
     writeing back the changed content to db
     """
-    WP = mygetconfig()
-    post = mygetpostconfig(updatepostfile)
-    WP.call(EditPost(post.id, post))
+    my_link = mygetconfig()
+    l_post = mygetpostconfig(updatepostfile)
+    my_link.call(EditPost(l_post.id, l_post))
 
-    pid = post.id
+    pid = l_post.id
     print(pid.strip())
 
 def myeditpost(postid):
@@ -253,24 +260,24 @@ def myeditpost(postid):
     """
     # loading the template file for putting
     # returned markdown into
-    postfile = script_dir + '/../templates/drowmark.template'
-    pfile = codecs.open(postfile, 'r', 'utf-8')
+    l_postfile = SCRIPT_DIR + '/../templates/drowmark.template'
+    pfile = codecs.open(l_postfile, 'r', 'utf-8')
     buf = pfile.read()
 
     config = ConfigParser()
     if os.name == 'posix':
-        config.read(script_dir + '/../.vimblogrc')
+        config.read(SCRIPT_DIR + '/../.vimblogrc')
     else:
-        config.read(script_dir + '/../_vimblogrc')
+        config.read(SCRIPT_DIR + '/../_vimblogrc')
 
     configcategories = config.get('blog0', 'categories')
 
     # getting the data of the post
-    WP = mygetconfig()
-    post = WP.call(GetPost(postid))
+    my_link = mygetconfig()
+    l_post = my_link.call(GetPost(postid))
     active_tags = ''
     active_categories = ''
-    for term in post.terms:
+    for term in l_post.terms:
         if term.name in configcategories:
             active_categories += term.name + ','
         else:
@@ -281,79 +288,79 @@ def myeditpost(postid):
     #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
-    content = myconvertcontent(post.content, 'html', 'markdown')
+    l_content = myconvertcontent(l_post.content, 'html', 'markdown')
 
     #fill the template
-    buf = buf.replace('{ID}', post.id)
-    buf = buf.replace('{TITLE}', post.title)
-    buf = buf.replace('{STATUS}', post.post_status)
+    buf = buf.replace('{ID}', l_post.id)
+    buf = buf.replace('{TITLE}', l_post.title)
+    buf = buf.replace('{STATUS}', l_post.post_status)
     buf = buf.replace('{CATEGORIES}', active_categories)
     buf = buf.replace('{TAGS}', active_tags)
-    buf = buf.replace('{CONTENT}', content)
+    buf = buf.replace('{CONTENT}', l_content)
 
-    f = tempfile.NamedTemporaryFile(suffix=post.id, prefix='vwp_edit', delete=False)
-    filename = f.name
-    f.close()
-    with codecs.open(filename, 'w+b', encoding='utf-8') as fh:
-        fh.write(buf)
-        fh.seek(0)
+    tmp_file = tempfile.NamedTemporaryFile(suffix=l_post.id, prefix='vwp_edit', delete=False)
+    filename = tmp_file.name
+    tmp_file.close()
+    with codecs.open(filename, 'w+b', encoding='utf-8') as file_handle:
+        file_handle.write(buf)
+        file_handle.seek(0)
 
-    print(f.name)
+    print(file_handle.name)
 
 if __name__ == '__main__':
-
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
-
     if len(sys.argv) != 2:
         print('1 parameter needed:\n\t file')
         raise BaseException
 
-    postfile = sys.argv[1]
+    L_POSTFILE = sys.argv[1]
 
     # grabbing the template and inserting what we already can...
-    newpost = mygetpostconfig(postfile)
+    L_NEWPOST = mygetpostconfig(L_POSTFILE)
 
     # Wordpress related, create the post
-    WP = mygetconfig()
+    MY_LINK = mygetconfig()
 
-    if newpost.entrytype != 'page':
-        post = WordPressPost()
+    if L_NEWPOST.entrytype != 'page':
+        L_POST = WordPressPost()
     else:
-        page = WordPressPage()
+        L_PAGE = WordPressPage()
 
     #converting the content back to markdown
-    content = myconvertcontent(newpost.content, 'markdown', 'html')
+    L_CONTENT = myconvertcontent(L_NEWPOST.content, 'markdown', 'html')
 
-    if newpost.entrytype != 'page':
+    if L_NEWPOST.entrytype != 'page':
         # Set post metadata
-        post.title = newpost.title
-        post.content = content
-        post.post_status = newpost.post_status
-        post.terms_names = newpost.terms_names
+        L_POST.title = L_NEWPOST.title
+        L_POST.content = L_CONTENT
+        L_POST.post_status = L_NEWPOST.post_status
+        L_POST.terms_names = L_NEWPOST.terms_names
     else:
         # i just do the same for pages
         # except we dont need the tags
-        page.title = newpost.title
-        page.content = content
-        page.post_status = newpost.post_status
+        L_PAGE.title = L_NEWPOST.title
+        L_PAGE.content = L_CONTENT
+        L_PAGE.post_status = L_NEWPOST.post_status
 
-    if newpost.thumb_url != None:
-        thumb_mime = mycheckimage(newpost.thumb_url)
-        if thumb_mime != None:
-            response = myuploadfile(newpost.thumb_url, thumb_mime)
-            if newpost.entrytype != 'page':
-                post.thumbnail = response['id']
+    if L_NEWPOST.thumb_url != None:
+        THUMB_MIME = mycheckimage(L_NEWPOST.thumb_url)
+        if THUMB_MIME != None:
+            L_RESPONSE = myuploadfile(L_NEWPOST.thumb_url, THUMB_MIME)
+            if L_NEWPOST.entrytype != 'page':
+                L_POST.thumbnail = L_RESPONSE['id']
             else:
-                page.thumbnail = response['id']
+                L_PAGE.thumbnail = L_RESPONSE['id']
 
-    if newpost.entrytype != 'page':
-        post.id = WP.call(NewPost(post)) # Post it!
+    L_OUT = None
+    if L_NEWPOST.entrytype != 'page':
+        L_POST.id = MY_LINK.call(NewPost(L_POST)) # Post it!
+        L_OUT = L_POST
     else:
-        page.id = WP.call(NewPost(page)) # or maybe post a page!
-        post = page
+        L_PAGE.id = MY_LINK.call(NewPost(L_PAGE)) # or maybe post a page!
+        L_OUT = L_PAGE
 
-    print("Posted: " + post.title)
-    print("\nWith Status: " + post.post_status)
-    print("\nAnd ID: " + post.id)
+    print("Posted: " + L_OUT.title)
+    print("\nWith Status: " + L_OUT.post_status)
+    print("\nAnd ID: " + L_OUT.id)
