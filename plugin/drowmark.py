@@ -19,7 +19,6 @@ from wordpress_xmlrpc.methods import media #, posts
 
 import panflute as pf
 
-POSTFILE = ''
 CATEGORIES = ''
 ARTICLE_STATUS = ''
 
