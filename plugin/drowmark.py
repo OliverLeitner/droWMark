@@ -91,21 +91,14 @@ def mygetpostconfig(s_postfile):
     l_post.tags = config.get('wordpress', 'tags')
     # FIXME clearing up unneeded map
     l_post.terms_names['post_tag'] = list(map(lambda x: x.strip(), l_post.tags.split(',')))
-
     l_post.categories = config.get('wordpress', 'categories')
     # FIXME clearing up unneeded map
     l_post.terms_names['category'] = list(map(lambda x: x.strip(), l_post.categories.split(',')))
-
     l_post.post_status = config.get('wordpress', 'status')
-
     l_post.title = config.get('wordpress', 'title')
-
     l_post.entrytype = config.get('wordpress', 'type')
-
     l_post.id = config.get('wordpress', 'id')
-
     l_post.content = postcontent
-
     l_post.thumb_url = None
     if config.has_option('wordpress', 'thumbnail'):
         l_post.thumbnail = config.get('wordpress', 'thumbnail')
