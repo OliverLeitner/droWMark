@@ -352,9 +352,18 @@ if __name__ == '__main__':
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
-    if len(sys.argv) != 2:
-        print('1 parameter needed:\n\t file')
+    if len(sys.argv) != 3:
+        print('calling parameter missing')
         raise BaseException
     else:
         # FIXME put switches for all functions here
-        mynewpost(sys.argv[1])
+        if sys.argv[2] == 'post':
+            mynewpost(sys.argv[1])
+        elif sys.argv[2] == 'edit':
+            myeditpost(sys.argv[1])
+        elif sys.argv[2] == 'publish':
+            mypublishpost(sys.argv[1])
+        elif sys.argv[2] == 'delete':
+            mydeletepost(sys.argv[1])
+        else:
+            mygetallposts(sys.argv[1], sys.argv[2])
