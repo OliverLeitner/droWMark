@@ -6,6 +6,11 @@ Vim plugin to post from VIM to WordPress using
 It uses an special template in files, they are a mix between an INI header and
 a MarkDown content. There is a template in `templates` directory.
 
+## Update ##
+
+droWMark now supports python 2.x and 3.x
+it will autodetect what you have and use that.
+
 ## How to
 
 Install the plugin using Vundle, Pathogen (or other package management tool) or
