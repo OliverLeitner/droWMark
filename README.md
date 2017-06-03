@@ -96,18 +96,25 @@ the directory tree under `.vim/bundle/droWMark` directory.
 
 ### Dependencies
 
-It is necessary to have Vim compiled with `+python` option.
+It is necessary to have Vim compiled with `+python` or `+python3` option.
 
 Dependencies for the python script are:
 
+- future package, for full compatibility with all python 2 and 3 versions
+  `apt install python-future`
+
 - Panflute package, wich also depends on Pandoc  
   `pip install panflute`
+  or
+  `pip3 install panflute`
 
 - Wordpress XML RPC  
-  `pip install python_wordpress_xmlrpc`
+  `pip install python-wordpress-xmlrpc`
+  or
+  `pip3 install python-wordpress-xmlrpc`
 
 - ConfigParser package  
-  `pip install configparser`
+  `apt install python-configparser`
 
 ## Notes
 

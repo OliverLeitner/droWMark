@@ -1,17 +1,37 @@
+" Prepare arguments for python script.
+let s:inter=''
+if( has('python3') )
+    let s:inter='python3'
+elseif( has('python') )
+    let s:inter='python'
+else
+    echo "No python interpreter"
+endif
+
+"dynamic temporary directories
+let s:tmp = ''
+"dynamic config file path
+let s:file = ''
+let s:operate = s:inter . ' -c "from __future__ import print_function; import os; print(os.name)"'
+let s:os = system(s:operate)
+
+"im only running gnu, more to come, options are
+if s:os =~ 'posix'
+    let s:tmp = escape('/tmp','\')
+    let s:file = '.vimblogrc'
+endif
+
+let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
+
 function! PostWordPress()
-    " Prepare arguments for python script.
-    if( has('python') )
-        let inter='python'
-        let interfile='pyfile'
-    else
-        return "No python interpreter"
-    endif
-    exe inter . ' ' .'import vim'
-    exe inter . ' ' .'import sys'
     let l:script = escape(s:path, ' ') . '/drowmark.py'
-    exe inter.' ' . 'sys.argv = [ vim.eval("l:script"), vim.eval("@%") ]'
-    " Call script
-    exe interfile .' ' . l:script
+    let l:writepath = s:tmp . '/saveEntry'
+    exec 'write ' . l:writepath
+    let l:blogpost = '!' . s:inter . ' ' . l:script . ' ' . l:writepath
+    execute l:blogpost
+    let l:dupp = s:inter . ' -c "import os; os.unlink(\"'.s:tmp.'/saveEntry\")"'
+    let l:dupp2 = system(l:dupp)
+    exec 'q!'
 endfunction
 
 function! NewWordPress()
@@ -23,7 +43,7 @@ endfunction
 " Get a list of blog entries from our blog
 function! ListWordPress()
     silent execute '!clear'
-    let l:bloglist = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.getAllPosts(0,20)"'
+    let l:bloglist = '!' . s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.mygetallposts(0,20)"'
     execute l:bloglist
     "exec 'read '. l:bloglist
     "setlocal buftype=nofile
@@ -34,20 +54,20 @@ function! PublishWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to publish: ')
     call inputrestore()
-    let l:publish = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.publishPost('.l:postid.')"'
+    let l:publish = '!' . s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.mypublishpost('.l:postid.')"'
     execute l:publish
 endfunction
 
 "update an existing post to db
 function! UpdateWordPress()
-    silent! exec 'write '.s:tmp.'/updatePost'
+    silent! exec 'write '. s:tmp .'/updatePost'
     silent! exec 'close'
-    let l:update = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.updatePost(\"'.s:tmp.'/updatePost\")"'
+    let l:update = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myupdatepost(\"'.s:tmp.'/updatePost\")"'
     let l:tmpname = system(l:update)
     let l:tmpname2 = systemlist('echo '.l:tmpname)[0]
-    let l:dupp = 'python -c "import os; os.unlink(\"'.s:tmp.'/updatePost\")"'
+    let l:dupp = s:inter . ' -c "import os; os.unlink(\"'.s:tmp.'/updatePost\")"'
     let l:dupp2 = system(l:dupp)
-    let l:delpid = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.removefiles(\"'.s:tmp.'\",\"'.l:tmpname2.'\")"'
+    let l:delpid = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myremovefiles(\"'.s:tmp.'\",\"'.l:tmpname2.'\")"'
     let l:delpid2 = system(l:delpid)
     "exec l:delpid
 endfunction!
@@ -57,7 +77,7 @@ function! EditWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to edit: ')
     call inputrestore()
-    let l:buffer = 'python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.editPost('.l:postid.')"'
+    let l:buffer = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myeditpost('.l:postid.')"'
     let l:name = system(l:buffer)
     if winnr() > 1
         exec 'read '. l:name
@@ -73,7 +93,7 @@ function! DeleteWordPress()
     call inputsave()
     let l:postid = input('Enter a post ID to delete: ')
     call inputrestore()
-    let l:delete = '!python -c "import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.deletePost('.l:postid.')"'
+    let l:delete = '!' . s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.mydeletepost('.l:postid.')"'
     execute l:delete
 endfunction
 
@@ -105,7 +125,7 @@ endfunction
 function! ConfigFileWordPress(message)
     setlocal buftype=nofile bufhidden=hide noswapfile nobuflisted
     put=a:message
-    execute 'wq '.s:path.'/../'.s:file
+    execute 'wq '. s:path .'/../'.s:file
 endfunction
 
 " Get password without showing the echo in the screen
@@ -118,21 +138,6 @@ function! s:getPass()
     endwhile
     return password
 endfunction
-
-"dynamic temporary directories
-let s:tmp = ''
-"dynamic config file path
-let s:file = ''
-let s:operate = 'python -c "import os; print os.name"'
-let s:os = system(s:operate)
-
-"im only running gnu, more to come, options are
-if s:os =~ 'posix'
-    let s:tmp = escape('/tmp','\')
-    let s:file = '.vimblogrc'
-endif
-
-let s:path = escape(resolve(expand('<sfile>:p:h')),'\')
 
 command! ListWordPress call ListWordPress()
 command! PublishWordPress call PublishWordPress()
