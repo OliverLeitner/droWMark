@@ -3,8 +3,7 @@ wordpress handler
 """
 from __future__ import print_function
 
-import codecs
-
+from codecs import open as copen
 from gc import enable, collect
 from os import path, listdir, remove, name
 from sys import argv
@@ -117,7 +116,7 @@ def mygetpostconfig(s_postfile, my_link=None):
     postcontent = ''
 
     inheader = True
-    tmp_file = codecs.open(s_postfile, 'r', 'utf-8')
+    tmp_file = copen(s_postfile, 'r', 'utf-8')
     for line in tmp_file:
         if inheader:
             # FIXME Improve this check
@@ -295,7 +294,7 @@ def myeditpost(postid, script_dir, config, my_link=None):
     # loading the template file for putting
     # returned markdown into
     l_postfile = script_dir + '/../templates/drowmark.template'
-    pfile = codecs.open(l_postfile, 'r', 'utf-8')
+    pfile = copen(l_postfile, 'r', 'utf-8')
     buf = pfile.read()
     categories = config.categories
 
@@ -327,7 +326,7 @@ def myeditpost(postid, script_dir, config, my_link=None):
     tmp_file = NamedTemporaryFile(suffix=l_post.id, prefix='vwp_edit', delete=False)
     filename = tmp_file.name
     tmp_file.close()
-    with codecs.open(filename, 'w+b', encoding='utf-8') as file_handle:
+    with copen(filename, 'w+b', encoding='utf-8') as file_handle:
         file_handle.write(buf)
         file_handle.seek(0)
 
