@@ -15,7 +15,7 @@ from configparser import ConfigParser
 from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
 from wordpress_xmlrpc.compat import xmlrpc_client
-from wordpress_xmlrpc.methods import media #, posts
+from wordpress_xmlrpc.methods import media
 
 import panflute as pf
 
@@ -127,11 +127,9 @@ def mygetpostconfig(s_postfile, my_link=None):
 
     l_post.terms_names = {}
     l_post.tags = config.get('wordpress', 'tags')
-    # FIXME clearing up unneeded map
-    l_post.terms_names['post_tag'] = list(map(lambda x: x.strip(), l_post.tags.split(',')))
+    l_post.terms_names['post_tag'] = list(lambda x: x.strip(), l_post.tags.split(','))
     l_post.categories = config.get('wordpress', 'categories')
-    # FIXME clearing up unneeded map
-    l_post.terms_names['category'] = list(map(lambda x: x.strip(), l_post.categories.split(',')))
+    l_post.terms_names['category'] = list(lambda x: x.strip(), l_post.categories.split(','))
     l_post.post_status = config.get('wordpress', 'status')
     l_post.title = config.get('wordpress', 'title')
     l_post.entrytype = config.get('wordpress', 'type')
@@ -247,7 +245,7 @@ def mygetallposts(offset, increment, my_link=None):
         for l_post in posts:
             #post_str = str(post)
             #tags = ','.join(map(str,post.terms))
-            # FIXME map -> list
+            # FIXME -> list... can be done better i am sure...
             l_categories = ','.join(map(str, l_post.terms))
             print(l_post.id + ' - ' + l_post.title + ' - ' + l_categories)
         offset = offset + increment
