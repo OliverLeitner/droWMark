@@ -11,14 +11,27 @@ from sys import argv
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from mimetypes import guess_type
-from configparser import ConfigParser
 
-from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
-from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
-from wordpress_xmlrpc.compat import xmlrpc_client
-from wordpress_xmlrpc.methods import media
+try:
+    from configparser import ConfigParser
+except:
+    print('configparser module is missing')
+    raise
 
-import panflute as pf
+try:
+    from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
+    from wordpress_xmlrpc.methods.posts import NewPost, EditPost, DeletePost, GetPost, GetPosts
+    from wordpress_xmlrpc.compat import xmlrpc_client
+    from wordpress_xmlrpc.methods import media
+except:
+    print('python-wordpress-xmlrpc module is missing')
+    raise
+
+try:
+    import panflute as pf
+except:
+    print('panflute module is missing')
+    raise
 
 class Params(object):
     """
