@@ -86,6 +86,9 @@ def mygetpostconfig(s_postfile):
     config = ConfigParser()
     config.readfp(buf)
 
+    #convert back to html
+    l_content = myconvertcontent(postcontent, 'markdown', 'html')
+
     l_post.terms_names = {}
     l_post.tags = config.get('wordpress', 'tags')
     # FIXME clearing up unneeded map
@@ -97,7 +100,7 @@ def mygetpostconfig(s_postfile):
     l_post.title = config.get('wordpress', 'title')
     l_post.entrytype = config.get('wordpress', 'type')
     l_post.id = config.get('wordpress', 'id')
-    l_post.content = postcontent
+    l_post.content = l_content
     l_post.thumb_url = None
     if config.has_option('wordpress', 'thumbnail'):
         l_post.thumbnail = config.get('wordpress', 'thumbnail')
@@ -239,10 +242,10 @@ def myupdatepost(updatepostfile):
     """
     writeing back the changed content to db
     """
+
     my_link = mygetconfig()
     l_post = mygetpostconfig(updatepostfile)
     my_link.call(EditPost(l_post.id, l_post))
-
     pid = l_post.id
     print(pid.strip())
 
@@ -351,15 +354,25 @@ if __name__ == '__main__':
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
-    if len(sys.argv) != 3:
+
+    #CATEGORIES = ''
+    #ARTICLE_STATUS = ''
+
+    #SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+    #HOME = os.path.expanduser('~')
+
+    if len(sys.argv) < 3:
         print('calling parameter missing')
         raise BaseException
     else:
-        # FIXME put switches for all functions here
         if sys.argv[2] == 'post':
             mynewpost(sys.argv[1])
         elif sys.argv[2] == 'edit':
             myeditpost(sys.argv[1])
+        elif sys.argv[2] == 'update':
+            myupdatepost(sys.argv[1])
+        elif sys.argv[3] == 'removefiles':
+            myremovefiles(sys.argv[1], sys.argv[2])
         elif sys.argv[2] == 'publish':
             mypublishpost(sys.argv[1])
         elif sys.argv[2] == 'delete':

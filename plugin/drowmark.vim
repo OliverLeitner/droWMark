@@ -66,12 +66,12 @@ endfunction
 function! UpdateWordPress()
     silent! exec 'write '. s:tmp .'/updatePost'
     silent! exec 'close'
-    let l:update = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myupdatepost(\"'.s:tmp.'/updatePost\")"'
+    let l:update = s:inter . ' ' . s:script . ' ' . s:tmp . '/updatePost update'
     let l:tmpname = system(l:update)
     let l:tmpname2 = systemlist('echo '.l:tmpname)[0]
     let l:dupp = s:inter . ' -c "import os; os.unlink(\"'.s:tmp.'/updatePost\")"'
     let l:dupp2 = system(l:dupp)
-    let l:delpid = s:inter . ' -c "from __future__ import print_function; import sys; import os; sys.path.append(os.path.abspath(\"'.s:path.'\")); import drowmark as dwm; dwm.myremovefiles(\"'.s:tmp.'\",\"'.l:tmpname2.'\")"'
+    let l:delpid = s:inter . ' ' . s:script . ' ' . s:tmp . ' ' . l:tmpname2 . ' removefiles'
     let l:delpid2 = system(l:delpid)
 endfunction!
 
