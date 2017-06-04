@@ -19,11 +19,43 @@ from wordpress_xmlrpc.methods import media #, posts
 
 import panflute as pf
 
-CATEGORIES = ''
-ARTICLE_STATUS = ''
+class Params(object):
+    """
+    important parameters for the initialisation
+    objectified
+    """
+    url = ''
+    username = ''
+    password = ''
+    article_status = ''
+    categories = ''
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-HOME = os.path.expanduser('~')
+    def __init__(self, url, username, password, article_status, categories):
+        self.url = url
+        self.username = username
+        self.password = password
+        self.article_status = article_status
+        self.categories = categories
+
+    def first(self):
+        """
+        placeholder for pylint
+        """
+        return self
+
+    def second(self):
+        """
+        placeholder for pylint
+        """
+        return self
+
+def getparams():
+    """
+    define some base params for returnage...
+    """
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    #output.HOME = os.path.expanduser('~')
+    return script_dir
 
 def myremovefiles(path, pid):
     """
@@ -34,30 +66,34 @@ def myremovefiles(path, pid):
         if fileentries.endswith(pid):
             os.remove(os.path.join(path, fileentries))
 
-def mygetconfig():
+def mygetlink(params):
     """
     read configuration and return a set wordpress link
     """
+    my_link = Client(params.url, params.username, params.password)
+    return my_link
+
+def mygetconfig(s_script_dir):
+    """
+    grab config variables...
+    """
     config = ConfigParser()
     if os.name == 'posix':
-        config.read(SCRIPT_DIR + '/../.vimblogrc')
+        config.read(s_script_dir + '/../.vimblogrc')
     else:
         #this should cover windows
-        config.read(SCRIPT_DIR + '/../_vimblogrc')
+        config.read(s_script_dir + '/../_vimblogrc')
 
-    # FIXME remove any global deps
-    global CATEGORIES, ARTICLE_STATUS
     url = config.get('blog0', 'url')
     url = 'https://' + url + '/xmlrpc.php'
     username = config.get('blog0', 'username')
     password = config.get('blog0', 'password')
-    ARTICLE_STATUS = config.get('blog0', 'article_status')
-    CATEGORIES = config.get('blog0', 'categories')
+    article_status = config.get('blog0', 'article_status')
+    categories = config.get('blog0', 'categories')
+    output = Params(url, username, password, article_status, categories)
+    return output
 
-    my_link = Client(url, username, password)
-    return my_link
-
-def mygetpostconfig(s_postfile):
+def mygetpostconfig(s_postfile, my_link=None):
     """
     putting this into a separate function might help later on
     with cleanup.
@@ -87,7 +123,7 @@ def mygetpostconfig(s_postfile):
     config.readfp(buf)
 
     #convert back to html
-    l_content = myconvertcontent(postcontent, 'markdown', 'html')
+    l_content = myconvertcontent(postcontent, 'markdown', 'html', my_link)
 
     l_post.terms_names = {}
     l_post.tags = config.get('wordpress', 'tags')
@@ -108,7 +144,7 @@ def mygetpostconfig(s_postfile):
         l_post.thumb_url = os.path.join(here, l_post.thumbnail) # Make path absolute
     return l_post
 
-def myconvertcontent(inputcontent, source, target):
+def myconvertcontent(inputcontent, source, target, my_link=None):
     """
     content converter
     """
@@ -121,7 +157,8 @@ def myconvertcontent(inputcontent, source, target):
 
     pf.run_filters(
         [myimageurls, mycodeblocks],
-        doc=postdocument
+        doc=postdocument,
+        my_link=my_link
     )
 
     content = pf.convert_text(
@@ -132,7 +169,7 @@ def myconvertcontent(inputcontent, source, target):
 
     return content
 
-def myimageurls(elem, doc):
+def myimageurls(elem, doc, my_link=None):
     """
     Panflute filter for Image URLs.
     Checks if the URLs are relative paths and match an image file. If they do,
@@ -143,12 +180,11 @@ def myimageurls(elem, doc):
         here = os.path.dirname(doc.location)
         url = os.path.join(here, elem.url) # Make path absolute
         mime = mycheckimage(url)
-        res = myuploadfile(url, mime)
+        res = myuploadfile(url, mime, my_link)
         elem.url = res['url']
         return elem
 
-# FIXME doc -> removal if possible
-def mycodeblocks(elem, doc):
+def mycodeblocks(elem, doc, my_link=None):
     """
     If input is a CodeBlock, just tag it as a code piece and put the language.
     WordPress can handle the highlighting
@@ -179,7 +215,7 @@ def mycheckimage(url):
         return
     return mime
 
-def myuploadfile(url, mime):
+def myuploadfile(url, mime, my_link=None):
     """
     Uploads files to Wordpress
     @returns response {
@@ -195,16 +231,14 @@ def myuploadfile(url, mime):
     with open(url) as img_file:
         data['bits'] = xmlrpc_client.Binary(img_file.read())
 
-    my_link = mygetconfig()
+    #my_link = mygetlink()
     response = my_link.call(media.UploadFile(data))
     return response
 
-def mygetallposts(offset, increment):
+def mygetallposts(offset, increment, my_link=None):
     """
     lets do the wordpress post listing thing
     """
-    my_link = mygetconfig()
-
     print('============== blog entries =================')
     while True:
         posts = my_link.call(GetPosts({'number': increment, 'offset': offset}))
@@ -218,62 +252,48 @@ def mygetallposts(offset, increment):
             print(l_post.id + ' - ' + l_post.title + ' - ' + l_categories)
         offset = offset + increment
 
-def mydeletepost(postid):
+def mydeletepost(postid, my_link=None):
     """
     delete a blogpost
     """
-    my_link = mygetconfig()
     l_post = my_link.call(DeletePost(postid))
     print(l_post)
 
-def mypublishpost(postid):
+def mypublishpost(postid, config, my_link=None):
     """
     publish an existing post
     """
-    # FIXME global vars -> init function
-    global ARTICLE_STATUS
-    my_link = mygetconfig()
     l_content = my_link.call(GetPost(postid))
-    l_content.post_status = ARTICLE_STATUS
+    l_content.post_status = config.article_status
     l_post = my_link.call(EditPost(postid, l_content))
     print(l_post)
 
-def myupdatepost(updatepostfile):
+def myupdatepost(updatepostfile, my_link=None):
     """
     writeing back the changed content to db
     """
-
-    my_link = mygetconfig()
-    l_post = mygetpostconfig(updatepostfile)
+    l_post = mygetpostconfig(updatepostfile, my_link)
     my_link.call(EditPost(l_post.id, l_post))
     pid = l_post.id
     print(pid.strip())
 
-def myeditpost(postid):
+def myeditpost(postid, script_dir, config, my_link=None):
     """
     edit an existing post
     """
     # loading the template file for putting
     # returned markdown into
-    l_postfile = SCRIPT_DIR + '/../templates/drowmark.template'
+    l_postfile = script_dir + '/../templates/drowmark.template'
     pfile = codecs.open(l_postfile, 'r', 'utf-8')
     buf = pfile.read()
-
-    config = ConfigParser()
-    if os.name == 'posix':
-        config.read(SCRIPT_DIR + '/../.vimblogrc')
-    else:
-        config.read(SCRIPT_DIR + '/../_vimblogrc')
-
-    configcategories = config.get('blog0', 'categories')
+    categories = config.categories
 
     # getting the data of the post
-    my_link = mygetconfig()
     l_post = my_link.call(GetPost(postid))
     active_tags = ''
     active_categories = ''
     for term in l_post.terms:
-        if term.name in configcategories:
+        if term.name in categories:
             active_categories += term.name + ','
         else:
             active_tags += term.name + ','
@@ -283,7 +303,7 @@ def myeditpost(postid):
     #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
-    l_content = myconvertcontent(l_post.content, 'html', 'markdown')
+    l_content = myconvertcontent(l_post.content, 'html', 'markdown', my_link)
 
     #fill the template
     buf = buf.replace('{ID}', l_post.id)
@@ -302,19 +322,18 @@ def myeditpost(postid):
 
     print(file_handle.name)
 
-def mynewpost(s_postfile):
+def mynewpost(s_postfile, my_link=None):
     """
     writing a new blog post
     """
-    my_link = mygetconfig()
-    l_newpost = mygetpostconfig(s_postfile)
+    l_newpost = mygetpostconfig(s_postfile, my_link)
 
     if l_newpost.entrytype != 'page':
         l_post = WordPressPost()
     else:
         l_page = WordPressPage()
 
-    l_content = myconvertcontent(l_newpost.content, 'markdown', 'html')
+    l_content = myconvertcontent(l_newpost.content, 'markdown', 'html', my_link)
 
     if l_newpost.entrytype != 'page':
         # Set post metadata
@@ -354,28 +373,29 @@ if __name__ == '__main__':
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
-
-    #CATEGORIES = ''
-    #ARTICLE_STATUS = ''
-
-    #SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-    #HOME = os.path.expanduser('~')
-
     if len(sys.argv) < 3:
         print('calling parameter missing')
         raise BaseException
     else:
+        #global params
+        PARAMS = getparams()
+        #config file variables
+        CONFIGVARS = mygetconfig(PARAMS)
+        #wordpress connection
+        LINK = mygetlink(CONFIGVARS)
         if sys.argv[2] == 'post':
-            mynewpost(sys.argv[1])
+            mynewpost(sys.argv[1], LINK)
         elif sys.argv[2] == 'edit':
-            myeditpost(sys.argv[1])
+            myeditpost(sys.argv[1], PARAMS, CONFIGVARS, LINK)
         elif sys.argv[2] == 'update':
-            myupdatepost(sys.argv[1])
+            myupdatepost(sys.argv[1], LINK)
         elif sys.argv[3] == 'removefiles':
             myremovefiles(sys.argv[1], sys.argv[2])
         elif sys.argv[2] == 'publish':
-            mypublishpost(sys.argv[1])
+            mypublishpost(sys.argv[1], CONFIGVARS, LINK)
         elif sys.argv[2] == 'delete':
-            mydeletepost(sys.argv[1])
+            mydeletepost(sys.argv[1], LINK)
+        elif sys.argv[3] == 'list':
+            mygetallposts(sys.argv[1], sys.argv[2], LINK)
         else:
-            mygetallposts(sys.argv[1], sys.argv[2])
+            print("no option chosen")

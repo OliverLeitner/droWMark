@@ -49,7 +49,7 @@ endfunction
 " Get a list of blog entries from our blog
 function! ListWordPress()
     silent execute '!clear'
-    let l:bloglist = '!' . s:inter . ' ' . s:script . ' ' . s:offset . ' ' . s:increment
+    let l:bloglist = '!' . s:inter . ' ' . s:script . ' ' . s:offset . ' ' . s:increment . ' list'
     execute l:bloglist
 endfunction
 
