@@ -401,6 +401,8 @@ if __name__ == '__main__':
         else:
             print("no option chosen")
 
+    # deleting unused stuff
+    del PARAMS, CONFIGVARS, LINK
     # force collect at end of program
     collect()
     #and force leave the program for security
