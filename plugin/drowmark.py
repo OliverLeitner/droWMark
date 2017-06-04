@@ -7,7 +7,7 @@ import codecs
 
 from gc import enable, collect
 from os import path, listdir, remove, name
-from sys import argv, exit
+from sys import argv
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from mimetypes import guess_type
