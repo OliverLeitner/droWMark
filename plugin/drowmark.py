@@ -3,13 +3,13 @@ wordpress handler
 """
 from __future__ import print_function
 
-import sys
-import os
-import tempfile
 import codecs
-import mimetypes
 
+from os import path, listdir, remove, name
+from sys import argv
 from io import StringIO
+from tempfile import NamedTemporaryFile
+from mimetypes import guess_type
 from configparser import ConfigParser
 
 from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
@@ -53,18 +53,18 @@ def getparams():
     """
     define some base params for returnage...
     """
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    script_dir = path.dirname(path.realpath(__file__))
     #output.HOME = os.path.expanduser('~')
     return script_dir
 
-def myremovefiles(path, pid):
+def myremovefiles(s_path, pid):
     """
     just remove some files by wildcard
     """
-    files = os.listdir(path)
+    files = listdir(s_path)
     for fileentries in files:
         if fileentries.endswith(pid):
-            os.remove(os.path.join(path, fileentries))
+            remove(path.join(path, fileentries))
 
 def mygetlink(params):
     """
@@ -78,7 +78,7 @@ def mygetconfig(s_script_dir):
     grab config variables...
     """
     config = ConfigParser()
-    if os.name == 'posix':
+    if name == 'posix':
         config.read(s_script_dir + '/../.vimblogrc')
     else:
         #this should cover windows
@@ -138,8 +138,8 @@ def mygetpostconfig(s_postfile, my_link=None):
     l_post.thumb_url = None
     if config.has_option('wordpress', 'thumbnail'):
         l_post.thumbnail = config.get('wordpress', 'thumbnail')
-        here = os.path.dirname(s_postfile)
-        l_post.thumb_url = os.path.join(here, l_post.thumbnail) # Make path absolute
+        here = path.dirname(s_postfile)
+        l_post.thumb_url = path.join(here, l_post.thumbnail) # Make path absolute
     return l_post
 
 def myconvertcontent(inputcontent, source, target, my_link=None):
@@ -175,8 +175,8 @@ def myimageurls(elem, doc, my_link=None):
     """
     if isinstance(elem, pf.Image):
         # Handles paths if they are relative to the post
-        here = os.path.dirname(doc.location)
-        url = os.path.join(here, elem.url) # Make path absolute
+        here = path.dirname(doc.location)
+        url = path.join(here, elem.url) # Make path absolute
         mime = mycheckimage(url)
         res = myuploadfile(url, mime, my_link)
         elem.url = res['url']
@@ -205,9 +205,9 @@ def mycheckimage(url):
     Checks if image path exists and if it's an image.
     @returns mime MIME type of the image or `None` if it's not an image.
     """
-    if not os.path.exists(url):
+    if not path.exists(url):
         return
-    mime = mimetypes.guess_type(url, strict=True)[0]
+    mime = guess_type(url, strict=True)[0]
     if mime.split('/')[0] != 'image':
         # It's not an image!
         return
@@ -224,7 +224,7 @@ def myuploadfile(url, mime, my_link=None):
     }
     """
     data = {}
-    data['name'] = os.path.basename(url)
+    data['name'] = path.basename(url)
     data['type'] = mime
     with open(url) as img_file:
         data['bits'] = xmlrpc_client.Binary(img_file.read())
@@ -310,7 +310,7 @@ def myeditpost(postid, script_dir, config, my_link=None):
     buf = buf.replace('{TAGS}', active_tags)
     buf = buf.replace('{CONTENT}', l_content)
 
-    tmp_file = tempfile.NamedTemporaryFile(suffix=l_post.id, prefix='vwp_edit', delete=False)
+    tmp_file = NamedTemporaryFile(suffix=l_post.id, prefix='vwp_edit', delete=False)
     filename = tmp_file.name
     tmp_file.close()
     with codecs.open(filename, 'w+b', encoding='utf-8') as file_handle:
@@ -354,7 +354,7 @@ def mynewpost(s_postfile, my_link=None):
             else:
                 l_page.thumbnail = l_response['id']
 
-    l_out = None
+    #l_out = None
     if l_newpost.entrytype != 'page':
         l_post.id = my_link.call(NewPost(l_post)) # Post it!
         l_out = l_post
@@ -370,7 +370,7 @@ if __name__ == '__main__':
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
-    if len(sys.argv) < 3:
+    if len(argv) < 3:
         print('calling parameter missing')
         raise BaseException
     else:
@@ -380,19 +380,19 @@ if __name__ == '__main__':
         CONFIGVARS = mygetconfig(PARAMS)
         #wordpress connection
         LINK = mygetlink(CONFIGVARS)
-        if sys.argv[2] == 'post':
-            mynewpost(sys.argv[1], LINK)
-        elif sys.argv[2] == 'edit':
-            myeditpost(sys.argv[1], PARAMS, CONFIGVARS, LINK)
-        elif sys.argv[2] == 'update':
-            myupdatepost(sys.argv[1], LINK)
-        elif sys.argv[3] == 'removefiles':
-            myremovefiles(sys.argv[1], sys.argv[2])
-        elif sys.argv[2] == 'publish':
-            mypublishpost(sys.argv[1], CONFIGVARS, LINK)
-        elif sys.argv[2] == 'delete':
-            mydeletepost(sys.argv[1], LINK)
-        elif sys.argv[3] == 'list':
-            mygetallposts(sys.argv[1], sys.argv[2], LINK)
+        if argv[2] == 'post':
+            mynewpost(argv[1], LINK)
+        elif argv[2] == 'edit':
+            myeditpost(argv[1], PARAMS, CONFIGVARS, LINK)
+        elif argv[2] == 'update':
+            myupdatepost(argv[1], LINK)
+        elif argv[3] == 'removefiles':
+            myremovefiles(argv[1], argv[2])
+        elif argv[2] == 'publish':
+            mypublishpost(argv[1], CONFIGVARS, LINK)
+        elif argv[2] == 'delete':
+            mydeletepost(argv[1], LINK)
+        elif argv[3] == 'list':
+            mygetallposts(argv[1], argv[2], LINK)
         else:
             print("no option chosen")
