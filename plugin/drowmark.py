@@ -5,8 +5,9 @@ from __future__ import print_function
 
 import codecs
 
+from gc import enable, collect
 from os import path, listdir, remove, name
-from sys import argv
+from sys import argv, exit
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from mimetypes import guess_type
@@ -367,6 +368,9 @@ def mynewpost(s_postfile, my_link=None):
     print("\nAnd ID: " + l_out.id)
 
 if __name__ == '__main__':
+    # enable garbage collection
+    enable()
+
     # Get arguments from sys.argv, the idea is to
     # maintain it simple, making the python file
     # callable from outside VIM also.
@@ -396,3 +400,8 @@ if __name__ == '__main__':
             mygetallposts(argv[1], argv[2], LINK)
         else:
             print("no option chosen")
+
+    # force collect at end of program
+    collect()
+    #and force leave the program for security
+    exit(0)
