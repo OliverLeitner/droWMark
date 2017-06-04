@@ -245,8 +245,7 @@ def mygetallposts(offset, increment, my_link=None):
         for l_post in posts:
             #post_str = str(post)
             #tags = ','.join(map(str,post.terms))
-            # FIXME -> list... can be done better i am sure...
-            l_categories = ','.join(map(str, l_post.terms))
+            l_categories = ','.join(str(x) for x in l_post.terms)
             print(l_post.id + ' - ' + l_post.title + ' - ' + l_categories)
         offset = offset + increment
 
