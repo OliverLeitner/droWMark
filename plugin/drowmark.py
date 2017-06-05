@@ -11,11 +11,11 @@ from io import StringIO
 from tempfile import NamedTemporaryFile
 from mimetypes import guess_type
 
+ERR = ''
 try:
     from configparser import ConfigParser
 except:
-    print('configparser module is missing')
-    raise
+    ERR += 'configparser module is missing'
 
 try:
     from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
@@ -23,14 +23,15 @@ try:
     from wordpress_xmlrpc.compat import xmlrpc_client
     from wordpress_xmlrpc.methods import media
 except:
-    print('python-wordpress-xmlrpc module is missing')
-    raise
+    ERR += 'python-wordpress-xmlrpc module is missing'
 
 try:
     import panflute as pf
 except:
-    print('panflute module is missing')
-    raise
+    ERR += ('panflute module is missing')
+
+if ERR != '':
+    raise ERR
 
 class Params(object):
     """
