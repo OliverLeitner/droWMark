@@ -15,7 +15,7 @@ ERR = ''
 try:
     from configparser import ConfigParser
 except:
-    ERR += 'configparser module is missing'
+    ERR += "configparser module is missing\n"
 
 try:
     from wordpress_xmlrpc import Client, WordPressPost, WordPressPage
@@ -23,12 +23,12 @@ try:
     from wordpress_xmlrpc.compat import xmlrpc_client
     from wordpress_xmlrpc.methods import media
 except:
-    ERR += 'python-wordpress-xmlrpc module is missing'
+    ERR += "python-wordpress-xmlrpc module is missing\n"
 
 try:
     import panflute as pf
 except:
-    ERR += ('panflute module is missing')
+    ERR += "panflute module is missing\n"
 
 if ERR != '':
     raise ERR
