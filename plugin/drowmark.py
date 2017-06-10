@@ -10,6 +10,7 @@ from sys import argv
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from mimetypes import guess_type
+#from html.parser import HTMLParser
 
 ERR = ''
 try:
@@ -32,6 +33,22 @@ except:
 
 if ERR != '':
     raise ERR
+
+#class MLStripper(HTMLParser):
+#    def __init__(self):
+#        self.reset()
+#        self.strict = False
+#        self.convert_charrefs= True
+#        self.fed = []
+#    def handle_data(self, d):
+#        self.fed.append(d)
+#    def get_data(self):
+#        return ''.join(self.fed)
+
+#def strip_tags(html):
+#    s = MLStripper()
+#    s.feed(html)
+#    return s.get_data()
 
 class Params(object):
     """
@@ -84,8 +101,8 @@ def mygetlink(params):
     """
     read configuration and return a set wordpress link
     """
-    my_link = Client(params.url, params.username, params.password)
-    return my_link
+    l_link = Client(params.url, params.username, params.password)
+    return l_link
 
 def mygetconfig(s_script_dir):
     """
@@ -107,7 +124,7 @@ def mygetconfig(s_script_dir):
     output = Params(url, username, password, article_status, categories)
     return output
 
-def mygetpostconfig(s_postfile, my_link=None):
+def mygetpostconfig(s_postfile):
     """
     putting this into a separate function might help later on
     with cleanup.
@@ -137,7 +154,8 @@ def mygetpostconfig(s_postfile, my_link=None):
     config.readfp(buf)
 
     #convert back to html
-    l_content = myconvertcontent(postcontent, 'markdown', 'html', my_link)
+    #postcontent = escape_decode(bytes(postcontent, "utf-8"))[0].decode("utf-8")
+    l_content = myconvertcontent(postcontent, 'markdown', 'html')
 
     l_post.terms_names = {}
     l_post.tags = config.get('wordpress', 'tags')
@@ -156,10 +174,11 @@ def mygetpostconfig(s_postfile, my_link=None):
         l_post.thumb_url = path.join(here, l_post.thumbnail) # Make path absolute
     return l_post
 
-def myconvertcontent(inputcontent, source, target, my_link=None):
+def myconvertcontent(inputcontent, source, target):
     """
     content converter
     """
+
     postdocument = pf.convert_text(
         inputcontent,
         input_format=source,
@@ -167,21 +186,33 @@ def myconvertcontent(inputcontent, source, target, my_link=None):
         standalone=True
     )
 
+    """
+    debug here...
+    """
+    #with StringIO() as filestuff:
+    #    pf.dump(postdocument, filestuff)
+    #    getme = filestuff.getvalue()
+    #    return getme
+
+    #print(postdocument)
+    #postdocument = strip_tags(postdocument)
+
     pf.run_filters(
         [myimageurls, mycodeblocks],
-        doc=postdocument,
-        my_link=my_link
+        doc=postdocument
     )
 
-    content = pf.convert_text(
+    outcontent = pf.convert_text(
         postdocument,
         input_format='panflute',
         output_format=target
     )
 
-    return content
+    return outcontent
 
-def myimageurls(elem, doc, my_link=None):
+#stuff breaks right in imageurls
+#so were rewriting that one first...
+def myimageurls(elem, doc):
     """
     Panflute filter for Image URLs.
     Checks if the URLs are relative paths and match an image file. If they do,
@@ -189,14 +220,18 @@ def myimageurls(elem, doc, my_link=None):
     """
     if isinstance(elem, pf.Image):
         # Handles paths if they are relative to the post
-        here = path.dirname(doc.location)
-        url = path.join(here, elem.url) # Make path absolute
-        mime = mycheckimage(url)
-        res = myuploadfile(url, mime, my_link)
-        elem.url = res['url']
+        # doc.location can be None, in that case it breaks up stuff
+        # so i do some sanity checks here...
+        if doc.location != '' and doc.location != None and doc.location != 'None':
+            here = path.dirname(doc.location)
+            url = path.join(here, elem.url) # Make path absolute
+            mime = mycheckimage(url)
+            res = myuploadfile(url, mime)
+            elem.url = res['url']
+            return elem
         return elem
 
-def mycodeblocks(elem, doc, my_link=None):
+def mycodeblocks(elem, doc):
     """
     If input is a CodeBlock, just tag it as a code piece and put the language.
     WordPress can handle the highlighting
@@ -227,7 +262,7 @@ def mycheckimage(url):
         return
     return mime
 
-def myuploadfile(url, mime, my_link=None):
+def myuploadfile(url, mime):
     """
     Uploads files to Wordpress
     @returns response {
@@ -243,11 +278,10 @@ def myuploadfile(url, mime, my_link=None):
     with open(url) as img_file:
         data['bits'] = xmlrpc_client.Binary(img_file.read())
 
-    #my_link = mygetlink()
     response = my_link.call(media.UploadFile(data))
     return response
 
-def mygetallposts(offset, increment, my_link=None):
+def mygetallposts(offset, increment):
     """
     lets do the wordpress post listing thing
     """
@@ -263,14 +297,14 @@ def mygetallposts(offset, increment, my_link=None):
             print(l_post.id + ' - ' + l_post.title + ' - ' + l_categories)
         offset = offset + increment
 
-def mydeletepost(postid, my_link=None):
+def mydeletepost(postid):
     """
     delete a blogpost
     """
     l_post = my_link.call(DeletePost(postid))
     print(l_post)
 
-def mypublishpost(postid, config, my_link=None):
+def mypublishpost(postid, config):
     """
     publish an existing post
     """
@@ -279,16 +313,16 @@ def mypublishpost(postid, config, my_link=None):
     l_post = my_link.call(EditPost(postid, l_content))
     print(l_post)
 
-def myupdatepost(updatepostfile, my_link=None):
+def myupdatepost(updatepostfile):
     """
     writeing back the changed content to db
     """
-    l_post = mygetpostconfig(updatepostfile, my_link)
+    l_post = mygetpostconfig(updatepostfile)
     my_link.call(EditPost(l_post.id, l_post))
     pid = l_post.id
     print(pid.strip())
 
-def myeditpost(postid, script_dir, config, my_link=None):
+def myeditpost(postid, script_dir, config):
     """
     edit an existing post
     """
@@ -314,7 +348,7 @@ def myeditpost(postid, script_dir, config, my_link=None):
     #categories = ','.join(map(str,post.categories))
 
     #converting the content back to markdown
-    l_content = myconvertcontent(l_post.content, 'html', 'markdown', my_link)
+    l_content = myconvertcontent(l_post.content, 'html', 'markdown')
 
     #fill the template
     buf = buf.replace('{ID}', l_post.id)
@@ -333,18 +367,18 @@ def myeditpost(postid, script_dir, config, my_link=None):
 
     print(file_handle.name)
 
-def mynewpost(s_postfile, my_link=None):
+def mynewpost(s_postfile):
     """
     writing a new blog post
     """
-    l_newpost = mygetpostconfig(s_postfile, my_link)
+    l_newpost = mygetpostconfig(s_postfile)
 
     if l_newpost.entrytype != 'page':
         l_post = WordPressPost()
     else:
         l_page = WordPressPage()
 
-    l_content = myconvertcontent(l_newpost.content, 'markdown', 'html', my_link)
+    l_content = myconvertcontent(l_newpost.content, 'markdown', 'html')
 
     if l_newpost.entrytype != 'page':
         # Set post metadata
@@ -396,26 +430,28 @@ if __name__ == '__main__':
         #config file variables
         CONFIGVARS = mygetconfig(PARAMS)
         #wordpress connection
-        LINK = mygetlink(CONFIGVARS)
+        global my_link
+        my_link = mygetlink(CONFIGVARS)
+
         if argv[2] == 'post':
-            mynewpost(argv[1], LINK)
+            mynewpost(argv[1])
         elif argv[2] == 'edit':
-            myeditpost(argv[1], PARAMS, CONFIGVARS, LINK)
+            myeditpost(argv[1], PARAMS, CONFIGVARS)
         elif argv[2] == 'update':
-            myupdatepost(argv[1], LINK)
+            myupdatepost(argv[1])
         elif argv[3] == 'removefiles':
             myremovefiles(argv[1], argv[2])
         elif argv[2] == 'publish':
-            mypublishpost(argv[1], CONFIGVARS, LINK)
+            mypublishpost(argv[1], CONFIGVARS)
         elif argv[2] == 'delete':
-            mydeletepost(argv[1], LINK)
+            mydeletepost(argv[1])
         elif argv[3] == 'list':
-            mygetallposts(argv[1], argv[2], LINK)
+            mygetallposts(argv[1], argv[2])
         else:
             print("no option chosen")
 
     # deleting unused stuff
-    del PARAMS, CONFIGVARS, LINK
+    del PARAMS, CONFIGVARS, my_link
     # force collect at end of program
     collect()
     #and force leave the program for security
